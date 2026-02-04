@@ -75,7 +75,20 @@ function T1Content() {
                     return;
                 }
 
-                if (data.status !== 'generated' || !data.audio_url) {
+                // Handle different audio statuses
+                if (data.status === 'pending') {
+                    setErrorMessage('Your audio is still being generated. Please try again later.');
+                    setStep('error');
+                    return;
+                }
+
+                if (data.status === 'qc_pending') {
+                    setErrorMessage('Your audio is under review. Please try again later.');
+                    setStep('error');
+                    return;
+                }
+
+                if (data.status !== 'ready' || !data.audio_url) {
                     setErrorMessage('Your audio is not available.');
                     setStep('error');
                     return;
