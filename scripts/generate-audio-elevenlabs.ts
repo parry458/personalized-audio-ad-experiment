@@ -12,6 +12,9 @@
  *   - SUPABASE_SERVICE_ROLE_KEY
  */
 
+import { config } from 'dotenv';
+config({ path: '.env.local' });
+
 import { createClient } from '@supabase/supabase-js';
 
 // ============================================
@@ -19,7 +22,8 @@ import { createClient } from '@supabase/supabase-js';
 // ============================================
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // "Rachel" - default female voice
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // "Rachel" fallback
+const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5'; // Free-tier compatible
 const BATCH_SIZE = 50; // Max participants per run
 
 // Text templates with podcast framing
@@ -63,7 +67,7 @@ async function generateAudio(text: string): Promise<Buffer> {
         },
         body: JSON.stringify({
             text,
-            model_id: 'eleven_monolingual_v1',
+            model_id: MODEL_ID,
             voice_settings: {
                 stability: 0.5,
                 similarity_boost: 0.5,
@@ -235,6 +239,8 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
 async function main() {
     console.log('🚀 ElevenLabs Audio Generation Script');
     console.log('=====================================');
+    console.log(`   MODEL_ID: ${MODEL_ID}`);
+    console.log(`   VOICE_ID: ${VOICE_ID}`);
 
     const lowUpdated = await processLowCondition();
     const { generated, errors } = await processMediumHighConditions();
