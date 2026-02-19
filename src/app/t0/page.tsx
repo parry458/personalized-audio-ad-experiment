@@ -125,11 +125,13 @@ function T0Content() {
             if (!formData.past_category) return 'Please select an online activity.';
             if (formData.past_category === 'Other' && !formData.past_category_other.trim())
                 return 'Please specify "Other" for online activity.';
+        }
+        if (s === 3) {
             if (!formData.goal_category) return 'Please select a personal goal.';
             if (formData.goal_category === 'Other' && !formData.goal_category_other.trim())
                 return 'Please specify "Other" for personal goal.';
         }
-        if (s === 3) {
+        if (s === 4) {
             if (!formData.attention_check) return 'Please answer the attention check question.';
         }
         return null;
@@ -146,7 +148,7 @@ function T0Content() {
             return;
         }
 
-        setStep(prev => Math.min(prev + 1, 3));
+        setStep(prev => Math.min(prev + 1, 4));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -158,7 +160,7 @@ function T0Content() {
 
     // ─── Submit ──────────────────────────────────────────────────
     const handleSubmit = async () => {
-        const err = validateStep(3);
+        const err = validateStep(4);
         if (err) { setError(err); return; }
         setError(null);
         setIsSubmitting(true);
@@ -316,7 +318,7 @@ function T0Content() {
                 </div>
 
                 {/* Progress */}
-                <StepIndicator current={step} total={3} />
+                <StepIndicator current={step} total={4} />
 
                 {/* ─── STEP 1: About You ─────────────────────────── */}
                 {step === 1 && (
@@ -367,14 +369,13 @@ function T0Content() {
                     </Card>
                 )}
 
-                {/* ─── STEP 2: Weekly Activities ─────────────────── */}
+                {/* ─── STEP 2: Recent Online Activity ────────────── */}
                 {step === 2 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-2xl">Weekly Activities</CardTitle>
-                            <CardDescription className="text-base">What have you been up to recently?</CardDescription>
+                            <CardTitle className="text-2xl">Recent online activity</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-8">
+                        <CardContent className="space-y-4">
                             <div className="space-y-3">
                                 <Label className="text-lg leading-snug">
                                     Which of the following best describes something you spent a lot of time on online in the last 7 days (outside of work/study)? *
@@ -400,7 +401,17 @@ function T0Content() {
                                     />
                                 )}
                             </div>
+                        </CardContent>
+                    </Card>
+                )}
 
+                {/* ─── STEP 3: Plans for the Coming Days ─────────── */}
+                {step === 3 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl">Plans for the coming days</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                             <div className="space-y-3">
                                 <Label className="text-lg leading-snug">
                                     Which of the following best describes one thing you want to make real progress on in the next 7 days? *
@@ -430,8 +441,8 @@ function T0Content() {
                     </Card>
                 )}
 
-                {/* ─── STEP 3: Media Habits ──────────────────────── */}
-                {step === 3 && (
+                {/* ─── STEP 4: Media Habits ──────────────────────── */}
+                {step === 4 && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-2xl">Media Habits</CardTitle>
@@ -539,7 +550,7 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step < 3 && (
+                    {step < 4 && (
                         <Button
                             type="button"
                             size="lg"
@@ -551,7 +562,7 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step === 3 && (
+                    {step === 4 && (
                         <Button
                             type="button"
                             size="lg"
