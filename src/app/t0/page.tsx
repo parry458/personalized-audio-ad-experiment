@@ -89,7 +89,6 @@ function T0Content() {
         'Streaming videos/TV',
         'Online shopping / browsing products',
         'Gaming',
-        'News / politics / current events',
         'Sports content',
         'Dating apps / messaging',
         'Other'

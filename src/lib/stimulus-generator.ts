@@ -12,7 +12,6 @@ const PAST_CATEGORY_MAPPING: Record<string, string> = {
     'Streaming videos/TV': 'streaming',
     'Online shopping / browsing products': 'online shopping',
     'Gaming': 'gaming',
-    'News / politics / current events': 'news browsing',
     'Sports content': 'sports content',
     'Dating apps / messaging': 'dating apps',
     'Other': 'online activity'
