@@ -1,12 +1,14 @@
 /**
- * T0 Page - First Part of Prolific Study
- * =======================================
- * Includes:
- * - Demographics (Country, City, Age)
- * - Interest categories (Past, Goal)
- * - Distractor questions
- * - Attention Check
- * - Screen-out logic for 'Other' country
+ * T0 Page - First Part of Prolific Study (Multi-Step Flow)
+ * ========================================================
+ * 3-step form:
+ *   Step 1: About You (Country, City, Age)
+ *   Step 2: Weekly Activities (Past Category, Goal Category)
+ *   Step 3: Media Habits (Podcasts, Notifications, Attention Check, etc.)
+ *
+ * - Screen-out logic for 'Other' country (unchanged)
+ * - Supabase submit only on final step
+ * - Progress indicator at top
  */
 
 'use client';
@@ -20,8 +22,29 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
 
+// ─── Progress Indicator ──────────────────────────────────────────────
+function StepIndicator({ current, total }: { current: number; total: number }) {
+    return (
+        <div className="w-full space-y-3">
+            <p className="text-center text-base font-medium text-gray-500">
+                Step {current} of {total}
+            </p>
+            <div className="flex gap-2">
+                {Array.from({ length: total }, (_, i) => (
+                    <div
+                        key={i}
+                        className={`h-2 flex-1 rounded-full transition-colors duration-300 ${i < current ? 'bg-blue-600' : 'bg-gray-200'
+                            }`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Main Content ────────────────────────────────────────────────────
 function T0Content() {
     // URL Params
     const searchParams = useSearchParams();
@@ -29,14 +52,17 @@ function T0Content() {
     const studyId = searchParams.get('STUDY_ID') || '';
     const sessionId = searchParams.get('SESSION_ID') || '';
 
-    // Form State
+    // Step state
+    const [step, setStep] = useState(1);
+
+    // Form State (persisted across steps)
     const [formData, setFormData] = useState({
         country: '',
         city: '',
         age: '',
-        past_category: '', // 1-8 option key
+        past_category: '',
         past_category_other: '',
-        goal_category: '', // 1-8 option key
+        goal_category: '',
         goal_category_other: '',
         podcast_frequency: '',
         podcast_genres: [] as string[],
@@ -46,7 +72,7 @@ function T0Content() {
         devices: [] as string[],
         notifications_per_day: '',
         busy_challenge: '',
-        attention_check: '', // User selected value
+        attention_check: '',
     });
 
     const [screenedOut, setScreenedOut] = useState(false);
@@ -79,57 +105,64 @@ function T0Content() {
         'Other'
     ];
 
-    // Handlers
+    // ─── Handlers ────────────────────────────────────────────────
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-
-        // Immediate screen-out check
         if (field === 'country' && value === 'Other') {
             setScreenedOut(true);
         }
     };
 
-    const handleCheckboxChange = (field: string, value: string) => {
-        setFormData(prev => {
-            const currentArray = prev[field as keyof typeof prev] as string[];
-            if (currentArray.includes(value)) {
-                return { ...prev, [field]: currentArray.filter(item => item !== value) };
-            } else {
-                return { ...prev, [field]: [...currentArray, value] };
-            }
-        });
+    // ─── Step Validation ─────────────────────────────────────────
+    const validateStep = (s: number): string | null => {
+        if (s === 1) {
+            if (!formData.country) return 'Please select your country.';
+            if (!formData.city.trim()) return 'Please enter your city.';
+            const ageNum = parseInt(formData.age);
+            if (!formData.age || isNaN(ageNum) || ageNum < 18 || ageNum > 99)
+                return 'Please enter a valid age between 18 and 99.';
+        }
+        if (s === 2) {
+            if (!formData.past_category) return 'Please select an online activity.';
+            if (formData.past_category === 'Other' && !formData.past_category_other.trim())
+                return 'Please specify "Other" for online activity.';
+            if (!formData.goal_category) return 'Please select a personal goal.';
+            if (formData.goal_category === 'Other' && !formData.goal_category_other.trim())
+                return 'Please specify "Other" for personal goal.';
+        }
+        if (s === 3) {
+            if (!formData.attention_check) return 'Please answer the attention check question.';
+        }
+        return null;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const goNext = () => {
+        const err = validateStep(step);
+        if (err) { setError(err); return; }
         setError(null);
+        setStep(prev => Math.min(prev + 1, 3));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-        // Validation - Age
-        const ageNum = parseInt(formData.age);
-        if (isNaN(ageNum) || ageNum < 18 || ageNum > 99) {
-            setError('Please enter a valid age between 18 and 99.');
-            return;
-        }
+    const goBack = () => {
+        setError(null);
+        setStep(prev => Math.max(prev - 1, 1));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-        // Required check (basic) happens via 'required' attribute logic, but complex logic here:
-        if (formData.past_category === 'Other' && !formData.past_category_other) {
-            setError('Please specify "Other" for online activity.');
-            return;
-        }
-        if (formData.goal_category === 'Other' && !formData.goal_category_other) {
-            setError('Please specify "Other" for personal goal.');
-            return;
-        }
-
+    // ─── Submit ──────────────────────────────────────────────────
+    const handleSubmit = async () => {
+        const err = validateStep(3);
+        if (err) { setError(err); return; }
+        setError(null);
         setIsSubmitting(true);
 
-        // Prepare payload
+        const ageNum = parseInt(formData.age);
         const payload = {
             ...formData,
             age: ageNum,
             past_category: formData.past_category === 'Other' ? `Other: ${formData.past_category_other}` : formData.past_category,
             goal_category: formData.goal_category === 'Other' ? `Other: ${formData.goal_category_other}` : formData.goal_category,
-            // Check attention check
             attention_check_pass: formData.attention_check === 'Weekly',
             submitted_at: new Date().toISOString(),
         };
@@ -145,11 +178,7 @@ function T0Content() {
                     t0_payload: payload,
                 }),
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to submit data');
-            }
-
+            if (!response.ok) throw new Error('Failed to submit data');
             setSubmitted(true);
         } catch (err: any) {
             setError(err.message || 'Something went wrong');
@@ -158,7 +187,7 @@ function T0Content() {
         }
     };
 
-    // Render Logic
+    // ─── Render: Screen-out ──────────────────────────────────────
     if (screenedOut) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -170,7 +199,7 @@ function T0Content() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground text-lg">
                             Thank you for your interest. Unfortunately, this study is currently only open to participants located in the UK or US.
                         </p>
                     </CardContent>
@@ -182,6 +211,7 @@ function T0Content() {
         );
     }
 
+    // ─── Render: Submitted ───────────────────────────────────────
     if (submitted) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -197,7 +227,7 @@ function T0Content() {
                     </CardHeader>
                     <CardContent className="space-y-4 text-green-800">
                         <p><strong>Part 1 Complete</strong></p>
-                        <p>We’ll invite you back for Part 2 in 7 days via Prolific messaging.</p>
+                        <p>We'll invite you back for Part 2 in 7 days via Prolific messaging.</p>
                         <p>You may now close this tab.</p>
                     </CardContent>
                 </Card>
@@ -205,6 +235,7 @@ function T0Content() {
         );
     }
 
+    // ─── Render: Missing PID ─────────────────────────────────────
     if (!prolificPid) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -219,226 +250,264 @@ function T0Content() {
         );
     }
 
+    // ─── Render: Multi-Step Form ─────────────────────────────────
     return (
-        <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mx-auto space-y-8">
+        <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto space-y-8">
+                {/* Header */}
                 <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Study - Part 1</h1>
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">Study – Part 1</h1>
                     <p className="text-sm text-muted-foreground">ID: {prolificPid}</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* SECTION 1: DEMOGRAPHICS */}
+                {/* Progress */}
+                <StepIndicator current={step} total={3} />
+
+                {/* ─── STEP 1: About You ─────────────────────────── */}
+                {step === 1 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>1. About You</CardTitle>
+                            <CardTitle className="text-2xl">About You</CardTitle>
+                            <CardDescription className="text-base">Tell us a bit about yourself.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
-                                <Label>Which country are you currently in? *</Label>
+                                <Label className="text-lg">Which country are you currently in? *</Label>
                                 <Select
                                     value={formData.country}
                                     onValueChange={(value) => handleChange('country', value)}
-                                    required
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="py-3 px-4 text-base">
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                        {countries.map(c => <SelectItem key={c} value={c} className="text-base">{c}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>What city or town do you currently live in? *</Label>
+                                <Label className="text-lg">What city or town do you currently live in? *</Label>
                                 <Input
                                     type="text"
                                     value={formData.city}
                                     onChange={(e) => handleChange('city', e.target.value)}
-                                    required
                                     placeholder="e.g. London"
+                                    className="py-3 px-4 text-base"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label>What is your age? *</Label>
+                                <Label className="text-lg">What is your age? *</Label>
                                 <Input
                                     type="number"
                                     min="18" max="99"
                                     value={formData.age}
                                     onChange={(e) => handleChange('age', e.target.value)}
-                                    required
-                                    placeholder="18-99"
+                                    placeholder="18–99"
+                                    className="py-3 px-4 text-base"
                                 />
                             </div>
                         </CardContent>
                     </Card>
+                )}
 
-                    {/* SECTION 2: INTERESTS */}
+                {/* ─── STEP 2: Weekly Activities ─────────────────── */}
+                {step === 2 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>2. Weekly Activities</CardTitle>
+                            <CardTitle className="text-2xl">Weekly Activities</CardTitle>
+                            <CardDescription className="text-base">What have you been up to recently?</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-8">
                             <div className="space-y-3">
-                                <Label className="leading-snug">
+                                <Label className="text-lg leading-snug">
                                     Which of the following best describes something you spent a lot of time on online in the last 7 days (outside of work/study)? *
                                 </Label>
                                 <RadioGroup
                                     value={formData.past_category}
                                     onValueChange={(value) => handleChange('past_category', value)}
-                                    required
                                 >
                                     {pastCategories.map(cat => (
-                                        <div key={cat} className="flex items-center space-x-2">
+                                        <div key={cat} className="flex items-center space-x-3 py-1">
                                             <RadioGroupItem value={cat} id={`past-${cat}`} />
-                                            <Label htmlFor={`past-${cat}`} className="font-normal cursor-pointer">{cat}</Label>
+                                            <Label htmlFor={`past-${cat}`} className="text-base font-normal cursor-pointer">{cat}</Label>
                                         </div>
                                     ))}
                                 </RadioGroup>
                                 {formData.past_category === 'Other' && (
                                     <Input
-                                        className="mt-2"
+                                        className="mt-2 py-3 px-4 text-base"
                                         type="text"
                                         placeholder="Please specify..."
                                         value={formData.past_category_other}
                                         onChange={(e) => handleChange('past_category_other', e.target.value)}
-                                        required
                                     />
                                 )}
                             </div>
 
                             <div className="space-y-3">
-                                <Label className="leading-snug">
+                                <Label className="text-lg leading-snug">
                                     Which of the following best describes one thing you want to make real progress on in the next 7 days? *
                                 </Label>
                                 <RadioGroup
                                     value={formData.goal_category}
                                     onValueChange={(value) => handleChange('goal_category', value)}
-                                    required
                                 >
                                     {goalCategories.map(cat => (
-                                        <div key={cat} className="flex items-center space-x-2">
+                                        <div key={cat} className="flex items-center space-x-3 py-1">
                                             <RadioGroupItem value={cat} id={`goal-${cat}`} />
-                                            <Label htmlFor={`goal-${cat}`} className="font-normal cursor-pointer">{cat}</Label>
+                                            <Label htmlFor={`goal-${cat}`} className="text-base font-normal cursor-pointer">{cat}</Label>
                                         </div>
                                     ))}
                                 </RadioGroup>
                                 {formData.goal_category === 'Other' && (
                                     <Input
-                                        className="mt-2"
+                                        className="mt-2 py-3 px-4 text-base"
                                         type="text"
                                         placeholder="Please specify..."
                                         value={formData.goal_category_other}
                                         onChange={(e) => handleChange('goal_category_other', e.target.value)}
-                                        required
                                     />
                                 )}
                             </div>
                         </CardContent>
                     </Card>
+                )}
 
-                    {/* SECTION 3: MEDIA HABITS (DISTRACTORS) */}
+                {/* ─── STEP 3: Media Habits ──────────────────────── */}
+                {step === 3 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>3. Media Habits</CardTitle>
+                            <CardTitle className="text-2xl">Media Habits</CardTitle>
+                            <CardDescription className="text-base">A few more questions about your media habits.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
-                                <Label>How often do you listen to podcasts?</Label>
+                                <Label className="text-lg">How often do you listen to podcasts?</Label>
                                 <Select
                                     value={formData.podcast_frequency}
                                     onValueChange={(value) => handleChange('podcast_frequency', value)}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="py-3 px-4 text-base">
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Never">Never</SelectItem>
-                                        <SelectItem value="Monthly">Monthly</SelectItem>
-                                        <SelectItem value="Weekly">Weekly</SelectItem>
-                                        <SelectItem value="2-3x week">2-3x week</SelectItem>
-                                        <SelectItem value="Daily">Daily</SelectItem>
+                                        <SelectItem value="Never" className="text-base">Never</SelectItem>
+                                        <SelectItem value="Monthly" className="text-base">Monthly</SelectItem>
+                                        <SelectItem value="Weekly" className="text-base">Weekly</SelectItem>
+                                        <SelectItem value="2-3x week" className="text-base">2-3x week</SelectItem>
+                                        <SelectItem value="Daily" className="text-base">Daily</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>To show you’re paying attention, please select ‘Weekly’ here. *</Label>
+                                <Label className="text-lg">To show you&apos;re paying attention, please select &apos;Weekly&apos; here. *</Label>
                                 <Select
                                     value={formData.attention_check}
                                     onValueChange={(value) => handleChange('attention_check', value)}
-                                    required
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="py-3 px-4 text-base">
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Never">Never</SelectItem>
-                                        <SelectItem value="Monthly">Monthly</SelectItem>
-                                        <SelectItem value="Weekly">Weekly</SelectItem>
-                                        <SelectItem value="Daily">Daily</SelectItem>
+                                        <SelectItem value="Never" className="text-base">Never</SelectItem>
+                                        <SelectItem value="Monthly" className="text-base">Monthly</SelectItem>
+                                        <SelectItem value="Weekly" className="text-base">Weekly</SelectItem>
+                                        <SelectItem value="Daily" className="text-base">Daily</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>How many notifications do you estimate you get per day?</Label>
+                                <Label className="text-lg">How many notifications do you estimate you get per day?</Label>
                                 <Select
                                     value={formData.notifications_per_day}
                                     onValueChange={(value) => handleChange('notifications_per_day', value)}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="py-3 px-4 text-base">
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="0-20">0-20</SelectItem>
-                                        <SelectItem value="21-50">21-50</SelectItem>
-                                        <SelectItem value="51-100">51-100</SelectItem>
-                                        <SelectItem value="100+">100+</SelectItem>
+                                        <SelectItem value="0-20" className="text-base">0–20</SelectItem>
+                                        <SelectItem value="21-50" className="text-base">21–50</SelectItem>
+                                        <SelectItem value="51-100" className="text-base">51–100</SelectItem>
+                                        <SelectItem value="100+" className="text-base">100+</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>What is your biggest daily challenge?</Label>
+                                <Label className="text-lg">What is your biggest daily challenge?</Label>
                                 <Select
                                     value={formData.busy_challenge}
                                     onValueChange={(value) => handleChange('busy_challenge', value)}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="py-3 px-4 text-base">
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Staying focused">Staying focused</SelectItem>
-                                        <SelectItem value="Prioritizing">Prioritizing</SelectItem>
-                                        <SelectItem value="Remembering tasks">Remembering tasks</SelectItem>
-                                        <SelectItem value="Getting started">Getting started</SelectItem>
-                                        <SelectItem value="Time management">Time management</SelectItem>
+                                        <SelectItem value="Staying focused" className="text-base">Staying focused</SelectItem>
+                                        <SelectItem value="Prioritizing" className="text-base">Prioritizing</SelectItem>
+                                        <SelectItem value="Remembering tasks" className="text-base">Remembering tasks</SelectItem>
+                                        <SelectItem value="Getting started" className="text-base">Getting started</SelectItem>
+                                        <SelectItem value="Time management" className="text-base">Time management</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </CardContent>
                     </Card>
+                )}
 
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
+                {/* ─── Error Alert ────────────────────────────────── */}
+                {error && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription className="text-base">{error}</AlertDescription>
+                    </Alert>
+                )}
+
+                {/* ─── Navigation Buttons ─────────────────────────── */}
+                <div className="flex gap-4">
+                    {step > 1 && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="lg"
+                            className="flex-1 text-lg py-6"
+                            onClick={goBack}
+                        >
+                            <ChevronLeft className="mr-2 h-5 w-5" />
+                            Back
+                        </Button>
                     )}
 
-                    <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full text-lg"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? 'Submitting...' : 'Submit'}
-                    </Button>
-                </form>
+                    {step < 3 && (
+                        <Button
+                            type="button"
+                            size="lg"
+                            className="flex-1 text-lg py-6"
+                            onClick={goNext}
+                        >
+                            Next
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
+                    )}
+
+                    {step === 3 && (
+                        <Button
+                            type="button"
+                            size="lg"
+                            className="flex-1 text-lg py-6"
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? 'Submitting...' : 'Submit'}
+                        </Button>
+                    )}
+                </div>
             </div>
         </main>
     );
