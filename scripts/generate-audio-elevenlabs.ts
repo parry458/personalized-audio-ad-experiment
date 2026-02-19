@@ -48,6 +48,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // ============================================
 
 import { generateAudio, uploadAudio } from '../src/lib/audio-generator';
+import { stitchWithPodcast } from '../src/lib/audio-stitch';
 
 // ============================================
 // PROCESS LOW CONDITION (SHARED FILE)
@@ -75,10 +76,12 @@ async function processLowCondition(): Promise<number> {
     console.log('  🎙️  Generating low.mp3...');
     try {
         const audioBuffer = await generateAudio(lowText, elevenLabsKey!);
-        await uploadAudio('low.mp3', audioBuffer);
-        console.log('  ✅ low.mp3 uploaded');
+        console.log('  🎧 Stitching with podcast intro/outro...');
+        const stitchedBuffer = await stitchWithPodcast(audioBuffer, 'low_final.mp3');
+        await uploadAudio('low_final.mp3', stitchedBuffer);
+        console.log('  ✅ low_final.mp3 uploaded');
     } catch (error) {
-        console.error('  ❌ Failed to generate/upload low.mp3:', error);
+        console.error('  ❌ Failed to generate/upload low_final.mp3:', error);
         return 0;
     }
 
@@ -87,7 +90,7 @@ async function processLowCondition(): Promise<number> {
         .from('participants')
         .update({
             audio_status: 'ready',
-            audio_path: 'low.mp3',
+            audio_path: 'low_final.mp3',
             stimulus_text: lowText,
             qc_status: 'approved',
             audio_generated_at: new Date().toISOString(),
@@ -151,7 +154,7 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
 
     for (const p of participants) {
         // Deterministic file naming: {pid}_{condition}.mp3
-        const audioPath = `${p.prolific_pid}_${p.condition}.mp3`;
+        const audioPath = `${p.prolific_pid}_${p.condition}_final.mp3`;
 
         try {
             console.log(`  👤 Processing ${p.prolific_pid} (${p.condition})...`);
@@ -195,11 +198,15 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
             console.log(`     🎙️  Generating audio via ElevenLabs...`);
             const audioBuffer = await generateAudio(finalStimulusText, elevenLabsKey!);
 
-            // 3. Upload Audio
-            console.log(`     ⬆️  Uploading to storage: ${audioPath}...`);
-            await uploadAudio(audioPath, audioBuffer);
+            // 3. Stitch with podcast intro/outro
+            console.log(`     🎧 Stitching with podcast intro/outro...`);
+            const stitchedBuffer = await stitchWithPodcast(audioBuffer, audioPath);
 
-            // 4. Update Participant Status
+            // 4. Upload stitched audio
+            console.log(`     ⬆️  Uploading stitched audio: ${audioPath}...`);
+            await uploadAudio(audioPath, stitchedBuffer);
+
+            // 5. Update Participant Status
             const updatePayload: any = {
                 audio_status: 'under_review', // Requires QC
                 qc_status: 'pending',
