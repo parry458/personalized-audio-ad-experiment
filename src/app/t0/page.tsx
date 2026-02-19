@@ -71,7 +71,7 @@ function T0Content() {
         streaming_services: [] as string[],
         devices: [] as string[],
         notifications_per_day: '',
-        busy_challenge: '',
+        multitask_audio_frequency: '',
         attention_check: '',
     });
 
@@ -468,6 +468,25 @@ function T0Content() {
                             </div>
 
                             <div className="space-y-2">
+                                <Label className="text-lg">How often do you multitask while listening to audio content?</Label>
+                                <Select
+                                    value={formData.multitask_audio_frequency}
+                                    onValueChange={(value) => handleChange('multitask_audio_frequency', value)}
+                                >
+                                    <SelectTrigger className="py-3 px-4 text-base">
+                                        <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Never" className="text-base">Never</SelectItem>
+                                        <SelectItem value="Rarely" className="text-base">Rarely</SelectItem>
+                                        <SelectItem value="Sometimes" className="text-base">Sometimes</SelectItem>
+                                        <SelectItem value="Often" className="text-base">Often</SelectItem>
+                                        <SelectItem value="Always" className="text-base">Always</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
                                 <Label className="text-lg">To show you&apos;re paying attention, please select &apos;Weekly&apos; here. *</Label>
                                 <Select
                                     value={formData.attention_check}
@@ -499,25 +518,6 @@ function T0Content() {
                                         <SelectItem value="21-50" className="text-base">21–50</SelectItem>
                                         <SelectItem value="51-100" className="text-base">51–100</SelectItem>
                                         <SelectItem value="100+" className="text-base">100+</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-lg">What is your biggest daily challenge?</Label>
-                                <Select
-                                    value={formData.busy_challenge}
-                                    onValueChange={(value) => handleChange('busy_challenge', value)}
-                                >
-                                    <SelectTrigger className="py-3 px-4 text-base">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Staying focused" className="text-base">Staying focused</SelectItem>
-                                        <SelectItem value="Prioritizing" className="text-base">Prioritizing</SelectItem>
-                                        <SelectItem value="Remembering tasks" className="text-base">Remembering tasks</SelectItem>
-                                        <SelectItem value="Getting started" className="text-base">Getting started</SelectItem>
-                                        <SelectItem value="Time management" className="text-base">Time management</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
