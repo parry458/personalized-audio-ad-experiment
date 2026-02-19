@@ -3,16 +3,15 @@
  * =======================
  * 
  * Concatenates podcast intro/outro MP3s around a generated TTS ad MP3
- * using ffmpeg's concat demuxer.
- * 
- * Flow: podcast_before.mp3 + ad.mp3 + podcast_after.mp3 → final.mp3
+ * using ffmpeg. All inputs are first normalized to uniform WAV (PCM s16le,
+ * 44100 Hz, stereo) before concatenation to avoid glitches from mismatched
+ * formats. The final output is encoded as MP3 at 160 kbps.
  */
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 
 const execFileAsync = promisify(execFile);
 
@@ -32,7 +31,7 @@ function getFfmpegPath(): string {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         return require('ffmpeg-static');
     } catch {
-        return 'ffmpeg'; // fallback to system ffmpeg
+        return 'ffmpeg';
     }
 }
 
@@ -45,8 +44,25 @@ function ensureTempDir(): void {
     }
 }
 
+/** Normalize an MP3 (file or buffer) to a uniform WAV file. */
+async function normalizeToWav(ffmpeg: string, input: string, outputWav: string): Promise<void> {
+    await execFileAsync(ffmpeg, [
+        '-y',
+        '-i', input,
+        '-ac', '2',
+        '-ar', '44100',
+        '-c:a', 'pcm_s16le',
+        outputWav,
+    ]);
+}
+
 /**
  * Stitch podcast intro/outro around an ad MP3 buffer.
+ * 
+ * Pipeline:
+ *   1. Normalize all three inputs to WAV (PCM s16le, 44100 Hz, stereo)
+ *   2. Concatenate WAVs via concat demuxer
+ *   3. Encode final output as MP3 (160 kbps)
  * 
  * @param adBuffer - The raw MP3 buffer of the generated ad
  * @param outputName - Name for the output file (e.g., "low_final.mp3")
@@ -64,46 +80,50 @@ export async function stitchWithPodcast(adBuffer: Buffer, outputName: string): P
     ensureTempDir();
 
     const ffmpeg = getFfmpegPath();
-    const timestamp = Date.now();
-    const adTempPath = path.join(TEMP_DIR, `ad_${timestamp}.mp3`);
-    const listPath = path.join(TEMP_DIR, `list_${timestamp}.txt`);
+    const ts = Date.now();
+
+    // Temp file paths
+    const adMp3Path = path.join(TEMP_DIR, `ad_${ts}.mp3`);
+    const beforeWav = path.join(TEMP_DIR, `before_${ts}.wav`);
+    const adWav = path.join(TEMP_DIR, `ad_${ts}.wav`);
+    const afterWav = path.join(TEMP_DIR, `after_${ts}.wav`);
+    const listPath = path.join(TEMP_DIR, `list_${ts}.txt`);
     const outputPath = path.join(TEMP_DIR, outputName);
 
-    try {
-        // 1. Write ad buffer to temp file
-        fs.writeFileSync(adTempPath, adBuffer);
+    const tempFiles = [adMp3Path, beforeWav, adWav, afterWav, listPath, outputPath];
 
-        // 2. Create concat demuxer list file
+    try {
+        // 1. Write ad buffer to temp MP3
+        fs.writeFileSync(adMp3Path, adBuffer);
+
+        // 2. Normalize all three segments to uniform WAV
+        console.log('     🔄 Normalizing audio segments (44100 Hz, stereo, PCM s16le)...');
+        await Promise.all([
+            normalizeToWav(ffmpeg, PODCAST_BEFORE, beforeWav),
+            normalizeToWav(ffmpeg, adMp3Path, adWav),
+            normalizeToWav(ffmpeg, PODCAST_AFTER, afterWav),
+        ]);
+
+        // 3. Create concat demuxer list
         const listContent = [
-            `file '${PODCAST_BEFORE}'`,
-            `file '${adTempPath}'`,
-            `file '${PODCAST_AFTER}'`,
+            `file '${beforeWav}'`,
+            `file '${adWav}'`,
+            `file '${afterWav}'`,
         ].join('\n');
         fs.writeFileSync(listPath, listContent);
 
-        // 3. Try concat with stream copy first (fastest, no re-encode)
-        try {
-            await execFileAsync(ffmpeg, [
-                '-y',
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', listPath,
-                '-c', 'copy',
-                outputPath,
-            ]);
-        } catch {
-            // 4. Fallback: re-encode if stream copy fails
-            console.log('     ⚠️  Stream copy failed, re-encoding...');
-            await execFileAsync(ffmpeg, [
-                '-y',
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', listPath,
-                '-c:a', 'libmp3lame',
-                '-q:a', '3',
-                outputPath,
-            ]);
-        }
+        // 4. Concatenate WAVs and encode to MP3
+        await execFileAsync(ffmpeg, [
+            '-y',
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', listPath,
+            '-c:a', 'libmp3lame',
+            '-b:a', '160k',
+            '-ar', '44100',
+            '-ac', '2',
+            outputPath,
+        ]);
 
         // 5. Read stitched output
         const stitchedBuffer = fs.readFileSync(outputPath);
@@ -112,8 +132,8 @@ export async function stitchWithPodcast(adBuffer: Buffer, outputName: string): P
         return stitchedBuffer;
 
     } finally {
-        // Cleanup temp files
-        for (const f of [adTempPath, listPath, outputPath]) {
+        // Cleanup all temp files
+        for (const f of tempFiles) {
             try { fs.unlinkSync(f); } catch { /* ignore */ }
         }
     }
