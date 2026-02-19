@@ -1,7 +1,7 @@
 /**
  * T1 Page - Complete Study Flow
  * ==============================
- * 
+ *
  * Flow: Audio Exposure → Relevance → Intrusiveness → Attitude → Purchase Intent → Privacy → Submit
  */
 
@@ -9,7 +9,11 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { T1_ITEMS, LikertScale, SemanticDifferentialScale } from '@/config/t1_items';
+import { T1_ITEMS } from '@/config/t1_items';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2, Clock, Headphones, ChevronRight, Loader2 } from 'lucide-react';
 
 // ============================================
 // TYPES
@@ -24,6 +28,28 @@ interface AudioResponse {
 }
 
 type Step = 'loading' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error';
+
+// ============================================
+// PROGRESS INDICATOR (same style as T0)
+// ============================================
+
+function StepIndicator({ current, total }: { current: number; total: number }) {
+    return (
+        <div className="w-full space-y-3">
+            <p className="text-center text-base font-medium text-gray-500">
+                Step {current} of {total}
+            </p>
+            <div className="flex gap-2">
+                {Array.from({ length: total }, (_, i) => (
+                    <div
+                        key={i}
+                        className={`h-2 flex-1 rounded-full transition-colors duration-300 ${i < current ? 'bg-blue-600' : 'bg-gray-200'}`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
 
 // ============================================
 // MAIN COMPONENT
@@ -184,258 +210,272 @@ function T1Content() {
     };
 
     // ============================================
-    // RENDER STATES
+    // RENDER: LOADING
     // ============================================
 
     if (step === 'loading') {
-        return <main style={styles.main}><p>Loading...</p></main>;
-    }
-
-    if (step === 'error') {
         return (
-            <main style={styles.main}>
-                <h1>T1 - Study Part 2</h1>
-                <div style={styles.errorBox}>{errorMessage}</div>
+            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="flex items-center gap-3 text-lg text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    Loading your study...
+                </div>
             </main>
         );
-    }
-
-    if (step === 'complete') {
-        return (
-            <main style={styles.main}>
-                <h1>Thank You!</h1>
-                <p style={styles.successBox}>Your responses have been recorded successfully.</p>
-                <p>You may now close this window or return to Prolific.</p>
-            </main>
-        );
-    }
-
-    if (step === 'submitting') {
-        return <main style={styles.main}><p>Submitting your responses...</p></main>;
     }
 
     // ============================================
-    // AUDIO STEP
+    // RENDER: ERROR
+    // ============================================
+
+    if (step === 'error') {
+        return (
+            <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-3xl font-semibold">Study Part 2</CardTitle>
+                            <CardDescription className="text-base">Audio exposure &amp; survey</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-5 w-5" />
+                                <AlertTitle className="text-base">Unable to proceed</AlertTitle>
+                                <AlertDescription className="text-base">{errorMessage}</AlertDescription>
+                            </Alert>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="text-base"
+                                onClick={() => window.location.reload()}
+                            >
+                                Retry
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: COMPLETE
+    // ============================================
+
+    if (step === 'complete') {
+        return (
+            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg">
+                    <CardHeader>
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                            <CheckCircle2 className="h-7 w-7 text-green-600" />
+                            Thank You!
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <p className="text-lg text-muted-foreground">
+                            Your responses have been recorded successfully.
+                        </p>
+                        <p className="text-base text-muted-foreground">
+                            You may now close this window or return to Prolific.
+                        </p>
+                    </CardContent>
+                </Card>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: SUBMITTING
+    // ============================================
+
+    if (step === 'submitting') {
+        return (
+            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="flex items-center gap-3 text-lg text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    Submitting your responses...
+                </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: AUDIO STEP
     // ============================================
 
     if (step === 'audio') {
         return (
-            <main style={styles.main}>
-                <h1>T1 - Study Part 2</h1>
-                <p style={styles.progress}>Step 1 of {totalSteps}</p>
+            <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    {/* Header */}
+                    <div className="text-center space-y-1">
+                        <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
+                        <p className="text-base text-muted-foreground">Audio exposure &amp; survey</p>
+                    </div>
 
-                <section style={styles.section}>
-                    <h2>🎧 Listen to the Advertisement</h2>
-                    <p>Please listen carefully to the advertisement below.</p>
+                    <StepIndicator current={1} total={totalSteps} />
 
-                    <audio
-                        ref={audioRef}
-                        controls
-                        src={audioUrl!}
-                        onTimeUpdate={handleTimeUpdate}
-                        onEnded={handleAudioEnded}
-                        style={styles.audio}
-                    />
-
-                    <button
-                        onClick={handleContinue}
-                        disabled={!canContinueAudio}
-                        style={{
-                            ...styles.button,
-                            ...(canContinueAudio ? {} : styles.buttonDisabled),
-                        }}
-                    >
-                        Continue
-                    </button>
-                </section>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl flex items-center gap-2">
+                                <Headphones className="h-6 w-6" />
+                                Listen to the Audio
+                            </CardTitle>
+                            <CardDescription className="text-base">
+                                Please listen carefully to the audio clip below.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <audio
+                                ref={audioRef}
+                                controls
+                                src={audioUrl!}
+                                onTimeUpdate={handleTimeUpdate}
+                                onEnded={handleAudioEnded}
+                                className="w-full"
+                            />
+                            <p className="text-sm text-muted-foreground italic">
+                                Please listen fully before continuing.
+                            </p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                size="lg"
+                                className="w-full text-lg py-6"
+                                onClick={handleContinue}
+                                disabled={!canContinueAudio}
+                            >
+                                Continue
+                                <ChevronRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
             </main>
         );
     }
 
     // ============================================
-    // SURVEY STEPS
+    // RENDER: SURVEY STEPS
     // ============================================
 
     const currentScale = activeScales[currentScaleIndex];
     const activeItems = currentScale.items.filter(item => item.active);
     const isLikert = currentScale.type === 'likert';
+    const isLastScale = currentScaleIndex >= activeScales.length - 1;
 
     return (
-        <main style={styles.main}>
-            <h1>T1 - Study Part 2</h1>
-            <p style={styles.progress}>
-                Step {currentScaleIndex + 2} of {totalSteps}
-            </p>
+        <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="text-center space-y-1">
+                    <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
+                    <p className="text-base text-muted-foreground">Audio exposure &amp; survey</p>
+                </div>
 
-            <section style={styles.section}>
-                <h2>{currentScale.scale_label}</h2>
-                <p style={styles.instruction}>
-                    {isLikert
-                        ? 'Please indicate how much you agree with the following statements.'
-                        : 'Please rate on the following scales.'}
-                </p>
+                <StepIndicator current={currentScaleIndex + 2} total={totalSteps} />
 
-                {activeItems.map((item) => (
-                    <div key={item.item_id} style={styles.questionBlock}>
-                        {isLikert ? (
-                            // Likert scale item
-                            <>
-                                <p style={styles.questionText}>
-                                    {(item as { text: string }).text}
-                                </p>
-                                <div style={styles.scaleRow}>
-                                    <span style={styles.scaleLabel}>
-                                        {T1_ITEMS.likert.labels["1"]}
-                                    </span>
-                                    {[1, 2, 3, 4, 5, 6, 7].map(val => (
-                                        <label key={val} style={styles.radioLabel}>
-                                            <input
-                                                type="radio"
-                                                name={item.item_id}
-                                                value={val}
-                                                checked={answers[item.item_id] === val}
-                                                onChange={() => handleAnswerChange(item.item_id, val)}
-                                            />
-                                            <span>{val}</span>
-                                        </label>
-                                    ))}
-                                    <span style={styles.scaleLabel}>
-                                        {T1_ITEMS.likert.labels["7"]}
-                                    </span>
-                                </div>
-                            </>
-                        ) : (
-                            // Semantic differential item
-                            <>
-                                {(item as { prompt?: string }).prompt && (
-                                    <p style={styles.questionText}>
-                                        {(item as { prompt?: string }).prompt}
-                                    </p>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">{currentScale.scale_label}</CardTitle>
+                        <CardDescription className="text-base">
+                            {isLikert
+                                ? 'Please indicate how much you agree with the following statements.'
+                                : 'Please rate on the following scales.'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {activeItems.map((item) => (
+                            <div key={item.item_id} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0">
+                                {isLikert ? (
+                                    <>
+                                        <p className="text-base font-medium mb-4">
+                                            {(item as { text: string }).text}
+                                        </p>
+                                        <div className="flex items-center gap-1 sm:gap-2 justify-between">
+                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
+                                                {T1_ITEMS.likert.labels["1"]}
+                                            </span>
+                                            {[1, 2, 3, 4, 5, 6, 7].map(val => (
+                                                <label
+                                                    key={val}
+                                                    className={`flex flex-col items-center gap-1 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-50'}`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name={item.item_id}
+                                                        value={val}
+                                                        checked={answers[item.item_id] === val}
+                                                        onChange={() => handleAnswerChange(item.item_id, val)}
+                                                        className="sr-only"
+                                                    />
+                                                    <span className={`text-sm font-medium ${answers[item.item_id] === val ? 'text-blue-700' : 'text-gray-600'}`}>
+                                                        {val}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
+                                                {T1_ITEMS.likert.labels["7"]}
+                                            </span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        {(item as { prompt?: string }).prompt && (
+                                            <p className="text-base font-medium mb-4">
+                                                {(item as { prompt?: string }).prompt}
+                                            </p>
+                                        )}
+                                        <div className="flex items-center gap-1 sm:gap-2 justify-between">
+                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
+                                                {(item as { left: string }).left}
+                                            </span>
+                                            {[1, 2, 3, 4, 5, 6, 7].map(val => (
+                                                <label
+                                                    key={val}
+                                                    className={`flex flex-col items-center gap-1 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-50'}`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name={item.item_id}
+                                                        value={val}
+                                                        checked={answers[item.item_id] === val}
+                                                        onChange={() => handleAnswerChange(item.item_id, val)}
+                                                        className="sr-only"
+                                                    />
+                                                    <span className={`text-sm font-medium ${answers[item.item_id] === val ? 'text-blue-700' : 'text-gray-600'}`}>
+                                                        {val}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
+                                                {(item as { right: string }).right}
+                                            </span>
+                                        </div>
+                                    </>
                                 )}
-                                <div style={styles.scaleRow}>
-                                    <span style={styles.scaleLabel}>
-                                        {(item as { left: string }).left}
-                                    </span>
-                                    {[1, 2, 3, 4, 5, 6, 7].map(val => (
-                                        <label key={val} style={styles.radioLabel}>
-                                            <input
-                                                type="radio"
-                                                name={item.item_id}
-                                                value={val}
-                                                checked={answers[item.item_id] === val}
-                                                onChange={() => handleAnswerChange(item.item_id, val)}
-                                            />
-                                            <span>{val}</span>
-                                        </label>
-                                    ))}
-                                    <span style={styles.scaleLabel}>
-                                        {(item as { right: string }).right}
-                                    </span>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ))}
-
-                <button
-                    onClick={handleContinue}
-                    disabled={!isCurrentScaleComplete()}
-                    style={{
-                        ...styles.button,
-                        ...(isCurrentScaleComplete() ? {} : styles.buttonDisabled),
-                    }}
-                >
-                    {currentScaleIndex < activeScales.length - 1 ? 'Continue' : 'Submit'}
-                </button>
-            </section>
+                            </div>
+                        ))}
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            size="lg"
+                            className="w-full text-lg py-6"
+                            onClick={handleContinue}
+                            disabled={!isCurrentScaleComplete()}
+                        >
+                            {isLastScale ? 'Submit' : 'Continue'}
+                            {!isLastScale && <ChevronRight className="ml-2 h-5 w-5" />}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
         </main>
     );
 }
-
-// ============================================
-// STYLES
-// ============================================
-
-const styles: { [key: string]: React.CSSProperties } = {
-    main: {
-        padding: '40px 20px',
-        maxWidth: '700px',
-        margin: '0 auto',
-        fontFamily: 'system-ui, sans-serif',
-    },
-    progress: {
-        color: '#666',
-        fontSize: '14px',
-        marginBottom: '20px',
-    },
-    section: {
-        marginTop: '20px',
-    },
-    instruction: {
-        color: '#555',
-        marginBottom: '24px',
-        fontStyle: 'italic',
-    },
-    audio: {
-        width: '100%',
-        marginBottom: '20px',
-    },
-    questionBlock: {
-        marginBottom: '28px',
-        paddingBottom: '20px',
-        borderBottom: '1px solid #eee',
-    },
-    questionText: {
-        marginBottom: '12px',
-        fontWeight: 500,
-    },
-    scaleRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        flexWrap: 'wrap',
-    },
-    scaleLabel: {
-        fontSize: '12px',
-        color: '#666',
-        minWidth: '100px',
-        textAlign: 'center',
-    },
-    radioLabel: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-        cursor: 'pointer',
-        padding: '4px 8px',
-    },
-    button: {
-        background: '#0070f3',
-        color: 'white',
-        padding: '12px 32px',
-        fontSize: '16px',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        marginTop: '20px',
-    },
-    buttonDisabled: {
-        background: '#ccc',
-        cursor: 'not-allowed',
-    },
-    errorBox: {
-        color: '#d32f2f',
-        background: '#ffebee',
-        padding: '16px',
-        borderRadius: '8px',
-    },
-    successBox: {
-        color: '#2e7d32',
-        background: '#e8f5e9',
-        padding: '16px',
-        borderRadius: '8px',
-    },
-};
 
 // ============================================
 // EXPORT WITH SUSPENSE
@@ -443,7 +483,14 @@ const styles: { [key: string]: React.CSSProperties } = {
 
 export default function T1Page() {
     return (
-        <Suspense fallback={<div style={{ padding: '40px' }}>Loading...</div>}>
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="flex items-center gap-3 text-lg text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    Loading...
+                </div>
+            </div>
+        }>
             <T1Content />
         </Suspense>
     );
