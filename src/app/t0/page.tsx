@@ -75,6 +75,7 @@ function T0Content() {
         attention_check: '',
     });
 
+    const [showOtherConfirm, setShowOtherConfirm] = useState(false);
     const [screenedOut, setScreenedOut] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,9 +109,7 @@ function T0Content() {
     // ─── Handlers ────────────────────────────────────────────────
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        if (field === 'country' && value === 'Other') {
-            setScreenedOut(true);
-        }
+        // Country "Other" is now handled at step navigation, not here
     };
 
     // ─── Step Validation ─────────────────────────────────────────
@@ -140,6 +139,13 @@ function T0Content() {
         const err = validateStep(step);
         if (err) { setError(err); return; }
         setError(null);
+
+        // Intercept: if step 1 and country is "Other", show confirmation
+        if (step === 1 && formData.country === 'Other') {
+            setShowOtherConfirm(true);
+            return;
+        }
+
         setStep(prev => Math.min(prev + 1, 3));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -187,7 +193,56 @@ function T0Content() {
         }
     };
 
-    // ─── Render: Screen-out ──────────────────────────────────────
+    // ─── Render: Country Confirmation ─────────────────────────────
+    if (showOtherConfirm && !screenedOut) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg">
+                    <CardHeader>
+                        <CardTitle className="text-xl flex items-center gap-2">
+                            <AlertCircle className="h-6 w-6 text-amber-500" />
+                            Eligibility Check
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-lg text-muted-foreground">
+                            This study is currently limited to participants in the <strong>US</strong> or <strong>UK</strong>.
+                            You selected <strong>&quot;Other&quot;</strong>.
+                        </p>
+                        <p className="text-lg text-muted-foreground">
+                            Did you select this by mistake?
+                        </p>
+                    </CardContent>
+                    <CardFooter className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="w-full text-base py-5"
+                            onClick={() => {
+                                setShowOtherConfirm(false);
+                                // Keep form state, just return to step 1
+                            }}
+                        >
+                            <ChevronLeft className="mr-2 h-5 w-5" />
+                            Go back and change
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="lg"
+                            className="w-full text-base py-5"
+                            onClick={() => {
+                                setScreenedOut(true);
+                            }}
+                        >
+                            Yes, I&apos;m in another country
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
+
+    // ─── Render: Screen-out (final) ──────────────────────────────
     if (screenedOut) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
