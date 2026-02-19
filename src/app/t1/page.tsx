@@ -136,9 +136,6 @@ function T1Content() {
     const handleTimeUpdate = () => {
         if (audioRef.current) {
             playTimeRef.current = audioRef.current.currentTime;
-            if (playTimeRef.current >= 2 && !canContinueAudio) {
-                setCanContinueAudio(true);
-            }
         }
     };
 
