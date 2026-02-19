@@ -399,7 +399,7 @@ function T1Content() {
                                             {[1, 2, 3, 4, 5, 6, 7].map(val => (
                                                 <label
                                                     key={val}
-                                                    className={`flex flex-col items-center gap-1 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-50'}`}
+                                                    className={`flex flex-col items-center gap-1.5 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-100 ring-1 ring-gray-200'}`}
                                                 >
                                                     <input
                                                         type="radio"
@@ -409,6 +409,9 @@ function T1Content() {
                                                         onChange={() => handleAnswerChange(item.item_id, val)}
                                                         className="sr-only"
                                                     />
+                                                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${answers[item.item_id] === val ? 'border-blue-600 bg-blue-600' : 'border-gray-400 bg-white'}`}>
+                                                        {answers[item.item_id] === val && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                    </span>
                                                     <span className={`text-sm font-medium ${answers[item.item_id] === val ? 'text-blue-700' : 'text-gray-600'}`}>
                                                         {val}
                                                     </span>
@@ -433,7 +436,7 @@ function T1Content() {
                                             {[1, 2, 3, 4, 5, 6, 7].map(val => (
                                                 <label
                                                     key={val}
-                                                    className={`flex flex-col items-center gap-1 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-50'}`}
+                                                    className={`flex flex-col items-center gap-1.5 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-100 ring-1 ring-gray-200'}`}
                                                 >
                                                     <input
                                                         type="radio"
@@ -443,6 +446,9 @@ function T1Content() {
                                                         onChange={() => handleAnswerChange(item.item_id, val)}
                                                         className="sr-only"
                                                     />
+                                                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${answers[item.item_id] === val ? 'border-blue-600 bg-blue-600' : 'border-gray-400 bg-white'}`}>
+                                                        {answers[item.item_id] === val && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                    </span>
                                                     <span className={`text-sm font-medium ${answers[item.item_id] === val ? 'text-blue-700' : 'text-gray-600'}`}>
                                                         {val}
                                                     </span>
