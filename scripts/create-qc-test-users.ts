@@ -37,6 +37,29 @@ async function main() {
             country: 'France',
             past_category: 'Social media scrolling',
             goal_category: 'Health routine (sleep, exercise, habits)'
+        },
+        {
+            prolific_pid: `qc_test_high_b_${Date.now()}`,
+            condition: 'high_b',
+            audio_status: 'pending',
+            age: 40,
+            age_range: '35-44',
+            city: 'London',
+            country: 'UK',
+            past_category: 'Streaming videos/TV',
+            goal_category: 'Job search / applications / career planning'
+        },
+        {
+            prolific_pid: `qc_test_low_${Date.now()}`,
+            condition: 'low',
+            audio_status: 'pending',
+            age: 20,
+            age_range: '18-24',
+            city: 'New York',
+            country: 'USA',
+            // Low doesn't use these but good to have
+            past_category: 'Gaming',
+            goal_category: 'Other'
         }
     ];
 

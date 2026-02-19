@@ -31,6 +31,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { computeAgeRange } from '@/lib/age-range';
 
 // Define the expected request body structure
 interface T0SubmitRequest {
@@ -55,19 +56,6 @@ interface T0SubmitRequest {
         submitted_at: string;
         [key: string]: unknown; // Allow additional fields like 'other_text' if needed
     };
-}
-
-// Function to derive age range
-function deriveAgeRange(age: number): string {
-    if (age >= 18 && age <= 19) return 'if you are below 20';
-    if (age >= 20 && age <= 29) return 'in your 20s';
-    if (age >= 30 && age <= 39) return 'in your 30s';
-    if (age >= 40 && age <= 49) return 'in your 40s';
-    if (age >= 50 && age <= 59) return 'in your 50s';
-    if (age >= 60 && age <= 69) return 'in your 60s';
-    if (age >= 70 && age <= 79) return 'in your 70s';
-    if (age >= 80 && age <= 99) return 'in your 80s';
-    return 'in your current stage of life';
 }
 
 // Function to randomly assign condition
@@ -131,7 +119,7 @@ export async function POST(request: NextRequest) {
         // ============================================
         // STEP 4: Prepare Data for Supabase
         // ============================================
-        const ageRange = deriveAgeRange(body.t0_payload.age);
+        const ageRange = computeAgeRange(body.t0_payload.age);
 
         // Determine status based on screen out (if country is Other, frontend should screen out, but backend can enforce too)
         // Note: The requirement was "If 'Other', block continuation (screen out) OR store and show 'not eligible'".

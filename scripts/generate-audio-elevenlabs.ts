@@ -21,12 +21,7 @@ import { createClient } from '@supabase/supabase-js';
 // CONFIGURATION
 // ============================================
 
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // "Rachel" fallback
-const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5'; // Free-tier compatible
 const BATCH_SIZE = 50; // Max participants per run
-
-
 
 // ============================================
 // SUPABASE CLIENT
@@ -49,53 +44,10 @@ if (!elevenLabsKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ============================================
-// ELEVENLABS TTS FUNCTION
+// SHARED AUDIO GENERATOR
 // ============================================
 
-async function generateAudio(text: string): Promise<Buffer> {
-    const response = await fetch(`${ELEVENLABS_API_URL}/${VOICE_ID}`, {
-        method: 'POST',
-        headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': elevenLabsKey!,
-        },
-        body: JSON.stringify({
-            text,
-            model_id: MODEL_ID,
-            voice_settings: {
-                stability: 0.5,
-                similarity_boost: 0.5,
-            },
-        }),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
-
-// ============================================
-// UPLOAD TO SUPABASE
-// ============================================
-
-async function uploadAudio(path: string, buffer: Buffer): Promise<void> {
-    const { error } = await supabase
-        .storage
-        .from('ads-audio')
-        .upload(path, buffer, {
-            contentType: 'audio/mpeg',
-            upsert: true,
-        });
-
-    if (error) {
-        throw new Error(`Supabase upload error: ${error.message}`);
-    }
-}
+import { generateAudio, uploadAudio } from '../src/lib/audio-generator';
 
 // ============================================
 // PROCESS LOW CONDITION (SHARED FILE)
@@ -122,7 +74,7 @@ async function processLowCondition(): Promise<number> {
     // Always regenerate to ensure latest text version
     console.log('  🎙️  Generating low.mp3...');
     try {
-        const audioBuffer = await generateAudio(lowText);
+        const audioBuffer = await generateAudio(lowText, elevenLabsKey!);
         await uploadAudio('low.mp3', audioBuffer);
         console.log('  ✅ low.mp3 uploaded');
     } catch (error) {
@@ -241,7 +193,7 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
 
             // 2. Generate Audio
             console.log(`     🎙️  Generating audio via ElevenLabs...`);
-            const audioBuffer = await generateAudio(finalStimulusText);
+            const audioBuffer = await generateAudio(finalStimulusText, elevenLabsKey!);
 
             // 3. Upload Audio
             console.log(`     ⬆️  Uploading to storage: ${audioPath}...`);
@@ -294,8 +246,6 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
 async function main() {
     console.log('🚀 ElevenLabs Audio Generation Script');
     console.log('=====================================');
-    console.log(`   MODEL_ID: ${MODEL_ID}`);
-    console.log(`   VOICE_ID: ${VOICE_ID}`);
 
     const lowUpdated = await processLowCondition();
     const { generated, errors } = await processMediumHighConditions();

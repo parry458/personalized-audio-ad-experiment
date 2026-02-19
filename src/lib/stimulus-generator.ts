@@ -4,6 +4,8 @@
  * Generates the final TTS script dynamically based on participant data and condition.
  */
 
+import { computeAgeRange } from '@/lib/age-range';
+
 // Define mappings as requested
 const PAST_CATEGORY_MAPPING: Record<string, string> = {
     'Social media scrolling': 'social media',
@@ -93,7 +95,7 @@ export function getStimulusText(participant: ParticipantData): string {
     // Rules: Trim extra whitespace.
     const cityClean = city.trim();
     const ageClean = age.toString();
-    const ageRangeClean = age_range.trim();
+    const ageRangeClean = age_range ? age_range.trim() : computeAgeRange(age);
 
     block1 = block1.replace('{{CITY}}', cityClean);
     block1 = block1.replace('{{AGE}}', ageClean);
