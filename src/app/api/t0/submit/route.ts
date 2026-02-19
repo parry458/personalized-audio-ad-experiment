@@ -59,12 +59,15 @@ interface T0SubmitRequest {
 
 // Function to derive age range
 function deriveAgeRange(age: number): string {
-    if (age >= 18 && age <= 24) return '18-24';
-    if (age >= 25 && age <= 34) return '25-34';
-    if (age >= 35 && age <= 44) return '35-44';
-    if (age >= 45 && age <= 54) return '45-54';
-    if (age >= 55) return '55+';
-    return 'Unknown';
+    if (age >= 18 && age <= 19) return 'if you are below 20';
+    if (age >= 20 && age <= 29) return 'in your 20s';
+    if (age >= 30 && age <= 39) return 'in your 30s';
+    if (age >= 40 && age <= 49) return 'in your 40s';
+    if (age >= 50 && age <= 59) return 'in your 50s';
+    if (age >= 60 && age <= 69) return 'in your 60s';
+    if (age >= 70 && age <= 79) return 'in your 70s';
+    if (age >= 80 && age <= 99) return 'in your 80s';
+    return 'in your current stage of life';
 }
 
 // Function to randomly assign condition
