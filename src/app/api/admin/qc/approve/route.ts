@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
             .from('participants')
             .update({
                 qc_status: 'approved',
+                audio_status: 'ready', // Make playable
                 qc_checked_at: new Date().toISOString(),
                 qc_notes: qc_notes || null,
             })

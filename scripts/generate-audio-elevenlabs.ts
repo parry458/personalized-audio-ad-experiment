@@ -26,12 +26,7 @@ const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // "
 const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5'; // Free-tier compatible
 const BATCH_SIZE = 50; // Max participants per run
 
-// Text templates with podcast framing
-const TEXTS = {
-    low: 'Welcome back to the podcast. This is the low personalization test ad. Now back to the episode.',
-    medium: 'Welcome back to the podcast. This is the medium personalization test ad. Now back to the episode.',
-    high: 'Welcome back to the podcast. This is the high personalization test ad. Now back to the episode.',
-};
+
 
 // ============================================
 // SUPABASE CLIENT
@@ -106,37 +101,43 @@ async function uploadAudio(path: string, buffer: Buffer): Promise<void> {
 // PROCESS LOW CONDITION (SHARED FILE)
 // ============================================
 
+// ============================================
+// PROCESS LOW CONDITION (SHARED FILE)
+// ============================================
+
 async function processLowCondition(): Promise<number> {
     console.log('\n📢 Processing LOW condition (shared file)...');
 
-    // Check if low.mp3 already exists
-    const { data: existingFile } = await supabase
-        .storage
-        .from('ads-audio')
-        .list('', { search: 'low.mp3' });
+    // Generate the LOW text dynamically (no placeholders)
+    const lowText = getStimulusText({
+        condition: 'low',
+        city: '',
+        age: 0,
+        age_range: '',
+        country: '',
+        past_category: '',
+        goal_category: ''
+    });
 
-    const lowFileExists = existingFile?.some(f => f.name === 'low.mp3');
-
-    if (!lowFileExists) {
-        console.log('  🎙️  Generating low.mp3...');
-        try {
-            const audioBuffer = await generateAudio(TEXTS.low);
-            await uploadAudio('low.mp3', audioBuffer);
-            console.log('  ✅ low.mp3 uploaded');
-        } catch (error) {
-            console.error('  ❌ Failed to generate/upload low.mp3:', error);
-            return 0;
-        }
-    } else {
-        console.log('  ✅ low.mp3 already exists');
+    // Always regenerate to ensure latest text version
+    console.log('  🎙️  Generating low.mp3...');
+    try {
+        const audioBuffer = await generateAudio(lowText);
+        await uploadAudio('low.mp3', audioBuffer);
+        console.log('  ✅ low.mp3 uploaded');
+    } catch (error) {
+        console.error('  ❌ Failed to generate/upload low.mp3:', error);
+        return 0;
     }
 
     // Update ALL pending LOW participants
     const { data: updated, error } = await supabase
         .from('participants')
         .update({
-            audio_status: 'generated',
+            audio_status: 'ready',
             audio_path: 'low.mp3',
+            stimulus_text: lowText,
+            qc_status: 'approved',
             audio_generated_at: new Date().toISOString(),
             audio_error: null,
         })
@@ -158,14 +159,26 @@ async function processLowCondition(): Promise<number> {
 // PROCESS MEDIUM/HIGH CONDITIONS (INDIVIDUAL FILES)
 // ============================================
 
+import { getStimulusText } from '../src/lib/stimulus-generator';
+
 async function processMediumHighConditions(): Promise<{ generated: number; errors: number }> {
     console.log('\n📢 Processing MEDIUM/HIGH conditions...');
 
-    // Fetch pending participants
+    // Fetch pending participants with ALL necessary fields for generation
     const { data: participants, error } = await supabase
         .from('participants')
-        .select('prolific_pid, condition')
-        .in('condition', ['medium', 'high'])
+        .select(`
+            prolific_pid, 
+            condition, 
+            city, 
+            age, 
+            age_range, 
+            country, 
+            past_category, 
+            goal_category,
+            stimulus_text
+        `)
+        .in('condition', ['medium', 'high_a', 'high_b']) // Updated to include high_a/high_b explicitly
         .eq('audio_status', 'pending')
         .limit(BATCH_SIZE);
 
@@ -185,28 +198,70 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
     let errors = 0;
 
     for (const p of participants) {
-        const text = p.condition === 'medium' ? TEXTS.medium : TEXTS.high;
-        const audioPath = `${p.prolific_pid}.mp3`;
+        // Deterministic file naming: {pid}_{condition}.mp3
+        const audioPath = `${p.prolific_pid}_${p.condition}.mp3`;
 
         try {
-            console.log(`  🎙️  Generating audio for ${p.prolific_pid} (${p.condition})...`);
+            console.log(`  👤 Processing ${p.prolific_pid} (${p.condition})...`);
 
-            const audioBuffer = await generateAudio(text);
+            // 1. Determine Stimulus Text
+            let finalStimulusText = p.stimulus_text;
+
+            if (!finalStimulusText) {
+                console.log(`     📝 Generating stimulus text...`);
+                // Generate if missing
+                finalStimulusText = getStimulusText({
+                    condition: p.condition as 'medium' | 'high_a' | 'high_b',
+                    city: p.city,
+                    age: p.age,
+                    age_range: p.age_range,
+                    country: p.country,
+                    past_category: p.past_category,
+                    goal_category: p.goal_category
+                });
+
+                // Verify generation
+                if (!finalStimulusText) {
+                    throw new Error("Failed to generate stimulus text.");
+                }
+
+                // Store it first (QC traceability)
+                const { error: updateError } = await supabase
+                    .from('participants')
+                    .update({ stimulus_text: finalStimulusText })
+                    .eq('prolific_pid', p.prolific_pid);
+
+                if (updateError) {
+                    throw new Error(`Failed to save stimulus text: ${updateError.message}`);
+                }
+                console.log(`     💾 Stimulus text saved`);
+            } else {
+                console.log(`     ✅ Using existing stimulus text`);
+            }
+
+            // 2. Generate Audio
+            console.log(`     🎙️  Generating audio via ElevenLabs...`);
+            const audioBuffer = await generateAudio(finalStimulusText);
+
+            // 3. Upload Audio
+            console.log(`     ⬆️  Uploading to storage: ${audioPath}...`);
             await uploadAudio(audioPath, audioBuffer);
 
-            // Update participant
+            // 4. Update Participant Status
+            const updatePayload: any = {
+                audio_status: 'under_review', // Requires QC
+                qc_status: 'pending',
+                audio_path: audioPath,
+                audio_generated_at: new Date().toISOString(),
+                audio_error: null,
+            };
+
             await supabase
                 .from('participants')
-                .update({
-                    audio_status: 'generated',
-                    audio_path: audioPath,
-                    audio_generated_at: new Date().toISOString(),
-                    audio_error: null,
-                    // For HIGH, qc_status stays 'pending' (already default)
-                })
+                .update(updatePayload)
                 .eq('prolific_pid', p.prolific_pid);
 
-            console.log(`  ✅ ${p.prolific_pid}: uploaded ${audioPath}`);
+            console.log(`     ✅ Complete!`);
             generated++;
 
         } catch (err) {

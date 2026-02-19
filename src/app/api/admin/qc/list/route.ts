@@ -23,12 +23,12 @@ interface ParticipantQC {
 
 export async function GET() {
     try {
-        // Fetch HIGH condition participants needing QC
+        // Fetch ALL condition participants needing QC
         const { data, error } = await supabaseAdmin
             .from('participants')
             .select('prolific_pid, condition, audio_status, audio_path, audio_generated_at, qc_status, qc_checked_at, qc_notes, qc_replaced_count')
-            .eq('condition', 'high')
-            .eq('audio_status', 'generated')
+            .in('condition', ['medium', 'high', 'high_a', 'high_b'])
+            .in('audio_status', ['under_review', 'error'])
             .in('qc_status', ['pending', 'needs_fix'])
             .order('audio_generated_at', { ascending: false });
 

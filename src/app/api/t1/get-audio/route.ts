@@ -87,11 +87,39 @@ export async function GET(request: NextRequest) {
         // ============================================
         // STEP 5: Check audio status and QC gating
         // ============================================
+        // ============================================
+        // STEP 5: Check audio status and QC gating
+        // ============================================
         const participant = data as ParticipantAudioData;
 
-        // If audio not generated yet or path missing
-        if (participant.audio_status !== 'generated' || !participant.audio_path) {
-            console.log('⏳ Audio not ready for:', prolificPid, '| Status:', participant.audio_status);
+        // 1. LOW Condition: Always playable
+        if (participant.condition === 'low') {
+            console.log('✅ LOW condition, serving low.mp3');
+
+            // Generate signed URL for low.mp3
+            const { data: signedData, error: signedError } = await supabaseAdmin
+                .storage
+                .from('ads-audio')
+                .createSignedUrl('low.mp3', 600);
+
+            if (signedError) {
+                console.error('❌ Error signing low.mp3:', signedError);
+                // Fallback or error?
+            }
+
+            return NextResponse.json({
+                ok: true,
+                found: true,
+                status: 'ready',
+                audio_url: signedData?.signedUrl || null,
+                prolific_pid: participant.prolific_pid,
+                condition: 'low'
+            });
+        }
+
+        // 2. Pending Generation
+        if (!participant.audio_status || participant.audio_status === 'pending') {
+            console.log('⏳ Audio pending generation:', prolificPid);
             return NextResponse.json({
                 ok: true,
                 found: true,
@@ -100,51 +128,44 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // QC gating for HIGH condition
-        if (participant.condition === 'high' && participant.qc_status !== 'approved') {
-            console.log('🔒 QC pending for HIGH condition:', prolificPid, '| QC Status:', participant.qc_status);
+        // 3. Under Review (QC Pending)
+        if (participant.audio_status === 'under_review' || participant.qc_status === 'pending') {
+            console.log('🔒 Audio under QC review:', prolificPid);
             return NextResponse.json({
                 ok: true,
                 found: true,
-                status: 'qc_pending',
+                status: 'under_review',
                 audio_url: null,
             });
         }
 
-        // ============================================
-        // STEP 6: Generate signed URL (audio is ready)
-        // ============================================
-        let audioUrl: string | null = null;
-        console.log('🔗 Generating signed URL for:', participant.audio_path);
+        // 4. Ready & Approved
+        if (participant.audio_status === 'ready' && participant.qc_status === 'approved' && participant.audio_path) {
+            console.log('✅ Audio ready and approved:', prolificPid);
 
-        const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin
-            .storage
-            .from('ads-audio')
-            .createSignedUrl(participant.audio_path, 600); // 600 seconds = 10 minutes
+            // Generate signed URL
+            const { data: signedData, error: signedError } = await supabaseAdmin
+                .storage
+                .from('ads-audio')
+                .createSignedUrl(participant.audio_path, 600);
 
-        if (signedUrlError) {
-            console.error('❌ Signed URL error:', signedUrlError);
-            // Don't fail the whole request, just log and continue with null URL
-        } else if (signedUrlData) {
-            audioUrl = signedUrlData.signedUrl;
-            console.log('✅ Signed URL generated successfully');
+            return NextResponse.json({
+                ok: true,
+                found: true,
+                status: 'ready',
+                audio_url: signedData?.signedUrl || null,
+                prolific_pid: participant.prolific_pid,
+                condition: participant.condition,
+                audio_generated_at: participant.audio_generated_at
+            });
         }
 
-        // ============================================
-        // STEP 6: Return participant audio data
-        // ============================================
-        console.log('✅ Found participant:', prolificPid, '| Status: ready');
-
+        // Fallback for other states (e.g. error, or mismatch)
         return NextResponse.json({
             ok: true,
             found: true,
-            prolific_pid: participant.prolific_pid,
-            condition: participant.condition,
-            status: 'ready',
-            audio_path: participant.audio_path,
-            audio_url: audioUrl,
-            audio_error: participant.audio_error,
-            audio_generated_at: participant.audio_generated_at,
+            status: participant.audio_status || 'unknown',
+            audio_url: null
         });
 
     } catch (error) {

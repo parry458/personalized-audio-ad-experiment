@@ -135,7 +135,7 @@ export default function AdminQCPage() {
         <main style={styles.main}>
             <h1>🎧 Admin QC Dashboard</h1>
             <p style={styles.subtitle}>
-                HIGH condition participants needing review: <strong>{participants.length}</strong>
+                Participants needing QC review (MEDIUM + HIGH_A + HIGH_B): <strong>{participants.length}</strong>
             </p>
 
             {participants.length === 0 ? (
@@ -145,19 +145,23 @@ export default function AdminQCPage() {
                     {participants.map((p) => (
                         <div key={p.prolific_pid} style={styles.card}>
                             <div style={styles.cardHeader}>
-                                <strong>{p.prolific_pid}</strong>
+                                <div>
+                                    <strong>{p.prolific_pid}</strong>
+                                    <span style={styles.conditionBadge}>{p.condition}</span>
+                                </div>
                                 <span style={{
                                     ...styles.badge,
-                                    background: p.qc_status === 'needs_fix' ? '#f44336' : '#ff9800',
+                                    background: p.qc_status === 'needs_fix' ? '#f44336' : (p.audio_status === 'error' ? '#d32f2f' : '#ff9800'),
                                 }}>
-                                    {p.qc_status}
+                                    {p.audio_status === 'error' ? 'ERROR' : p.qc_status}
                                 </span>
                             </div>
 
                             <div style={styles.meta}>
-                                <span>Generated: {p.audio_generated_at ? new Date(p.audio_generated_at).toLocaleString() : 'N/A'}</span>
+                                <span>Status: {p.audio_status}</span>
+                                <span> • Generated: {p.audio_generated_at ? new Date(p.audio_generated_at).toLocaleString() : 'N/A'}</span>
                                 {p.qc_replaced_count > 0 && (
-                                    <span> | Replaced: {p.qc_replaced_count}x</span>
+                                    <span> • Replaced: {p.qc_replaced_count}x</span>
                                 )}
                             </div>
 
@@ -258,6 +262,15 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: 'white',
         fontSize: '12px',
         fontWeight: 'bold',
+    },
+    conditionBadge: {
+        marginLeft: '10px',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        background: '#e0e0e0',
+        color: '#333',
+        fontSize: '11px',
+        textTransform: 'uppercase',
     },
     meta: {
         fontSize: '12px',

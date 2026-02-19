@@ -41,6 +41,8 @@ ADD COLUMN IF NOT EXISTS notifications_per_day TEXT,
 ADD COLUMN IF NOT EXISTS busy_challenge TEXT,
 ADD COLUMN IF NOT EXISTS attention_check_pass BOOLEAN DEFAULT FALSE;
 
+ADD COLUMN IF NOT EXISTS stimulus_text TEXT;
+
 -- 4. Status Column (Ensure it exists and has correct values)
 -- We'll assume the status column already exists, but let's ensure the check constraint includes 'screened_out'
 -- or we can just use text. Let's add 'screened_out' to the allowed statuses if we have a constraint.

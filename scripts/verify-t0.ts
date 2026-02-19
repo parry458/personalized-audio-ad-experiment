@@ -5,23 +5,15 @@ async function verifyT0() {
     console.log('🧪 Verifying T0 Submission...');
 
     const payload = {
-        prolific_pid: `test_user_verify_${Date.now()}`,
+        prolific_pid: `test_user_age44_${Date.now()}`,
         study_id: 'test_study',
         session_id: 'test_session',
         t0_payload: {
             country: 'UK',
             city: 'London',
-            age: 25,
+            age: 44,
             past_category: 'Gaming',
-            goal_category: 'Health routine (sleep, exercise, habits)',
-            podcast_frequency: 'Weekly',
-            podcast_genres: ['Comedy'],
-            shortform_frequency: 'Daily',
-            favorite_movie_genre: 'Action',
-            streaming_services: ['Netflix'],
-            devices: ['Phone'],
-            notifications_per_day: '51-100',
-            busy_challenge: 'Staying focused',
+            goal_category: 'Health',
             attention_check_pass: true,
             submitted_at: new Date().toISOString()
         }
