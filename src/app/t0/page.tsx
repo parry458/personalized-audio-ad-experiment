@@ -378,7 +378,7 @@ function T0Content() {
                         <CardContent className="space-y-4">
                             <div className="space-y-3">
                                 <Label className="text-lg leading-snug">
-                                    Which of the following best describes something you spent a lot of time on online in the last 7 days (outside of work/study)? *
+                                    Which of the following best describes something you&apos;ve found yourself spending quite a bit of time on online recently (outside of work or study)? *
                                 </Label>
                                 <RadioGroup
                                     value={formData.past_category}
@@ -409,12 +409,12 @@ function T0Content() {
                 {step === 3 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-2xl">Plans for the coming days</CardTitle>
+                            <CardTitle className="text-2xl">Plans for the coming month</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-3">
                                 <Label className="text-lg leading-snug">
-                                    Which of the following best describes one thing you want to make real progress on in the next 7 days? *
+                                    Which of the following best describes one thing you would like to make meaningful progress on over the next month? *
                                 </Label>
                                 <RadioGroup
                                     value={formData.goal_category}
