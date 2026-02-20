@@ -72,17 +72,26 @@ async function processLowCondition(): Promise<number> {
         goal_category: ''
     });
 
-    // Always regenerate to ensure latest text version
-    console.log('  🎙️  Generating low.mp3...');
-    try {
-        const audioBuffer = await generateAudio(lowText, elevenLabsKey!);
-        console.log('  🎧 Stitching with podcast intro/outro...');
-        const stitchedBuffer = await stitchWithPodcast(audioBuffer, 'low_final.mp3');
-        await uploadAudio('low_final.mp3', stitchedBuffer);
-        console.log('  ✅ low_final.mp3 uploaded');
-    } catch (error) {
-        console.error('  ❌ Failed to generate/upload low_final.mp3:', error);
-        return 0;
+    // Check if low_final.mp3 already exists in storage (idempotent)
+    const { data: existing } = await supabase.storage
+        .from('ads-audio')
+        .createSignedUrl('low_final.mp3', 10);
+
+    if (existing?.signedUrl) {
+        console.log('  ✅ low_final.mp3 already exists in storage — skipping generation');
+    } else {
+        // Generate, stitch, and upload
+        console.log('  🎙️  Generating low ad via ElevenLabs...');
+        try {
+            const audioBuffer = await generateAudio(lowText, elevenLabsKey!);
+            console.log('  🎧 Stitching with podcast intro/outro...');
+            const stitchedBuffer = await stitchWithPodcast(audioBuffer, 'low_final.mp3');
+            await uploadAudio('low_final.mp3', stitchedBuffer);
+            console.log('  ✅ low_final.mp3 uploaded');
+        } catch (error) {
+            console.error('  ❌ Failed to generate/upload low_final.mp3:', error);
+            return 0;
+        }
     }
 
     // Update ALL pending LOW participants
