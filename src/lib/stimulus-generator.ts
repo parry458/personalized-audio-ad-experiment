@@ -35,8 +35,8 @@ const BLOCK_3 = "That’s FocusFlow — download it today and take control of yo
 
 // Block 1 Templates
 const BLOCK_1_TEMPLATES = {
-    high_b: "Living in {{CITY}} at {{AGE}} often means working toward something meaningful. We know that you plan to focus on {{GOAL_CATEGORY}}, and that’s why we want to show you a solution designed specifically to support that goal.",
-    high_a: "Living in {{CITY}} at {{AGE}}, it’s easy to get pulled into habits that quietly take over your time. Our records show that recently you’ve been spending a significant amount of time on {{PAST_CATEGORY}}. This tells us where your attention is currently going.",
+    high_b: "Living in {{CITY}} at age {{AGE}} often means working toward something meaningful. We know that you plan to focus on {{GOAL_CATEGORY}}, and that’s why we want to show you a solution designed specifically to support that goal.",
+    high_a: "Living in {{CITY}} at age {{AGE}}, it’s easy to get pulled into habits that quietly take over your time. Our records show that recently you’ve been spending a significant amount of time on {{PAST_CATEGORY}}. This tells us where your attention is currently going.",
     low: "Staying focused isn’t always easy, especially when daily responsibilities compete for attention. Distractions build up quickly, and even meaningful goals can lose momentum without a clear structure in place.",
     medium: "Living in {{CITY}} often means balancing many responsibilities, especially {{AGE_RANGE}}. Staying organized and consistent can make the difference between feeling busy and making real progress."
 };
