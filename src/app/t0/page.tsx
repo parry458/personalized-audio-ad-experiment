@@ -52,10 +52,14 @@ function T0Content() {
     const studyId = searchParams.get('STUDY_ID') || '';
     const sessionId = searchParams.get('SESSION_ID') || '';
 
-    // Step state (0 = consent, 1-3 = form steps)
+    // Step state (0 = consent, 1 = screener, 2-4 = form steps)
     const [step, setStep] = useState(0);
     const [consentAnswer, setConsentAnswer] = useState<string>('');
     const startTimeRef = useRef(Date.now());
+
+    // Screener state
+    const [screenerAnswers, setScreenerAnswers] = useState<Record<string, string>>({});
+    const [screenFailed, setScreenFailed] = useState(false);
 
     // Form State (persisted across steps)
     const [formData, setFormData] = useState({
@@ -86,6 +90,15 @@ function T0Content() {
 
         const checkExisting = async () => {
             try {
+                // Check screener failure first
+                const screenRes = await fetch(`/api/t0/screener?prolific_pid=${encodeURIComponent(prolificPid)}`);
+                const screenData = await screenRes.json();
+                if (screenData.screen_failed) {
+                    setScreenFailed(true);
+                    setChecking(false);
+                    return;
+                }
+
                 const res = await fetch(`/api/t0/check?prolific_pid=${encodeURIComponent(prolificPid)}`);
                 const data = await res.json();
                 if (data.already_completed_t0) {
@@ -136,11 +149,26 @@ function T0Content() {
         });
     };
 
+    const handleScreenerChange = (field: string, value: string) => {
+        setScreenerAnswers(prev => ({ ...prev, [field]: value }));
+        setFieldErrors(prev => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
+
     // ─── Step Validation ─────────────────────────────────────────
     const validateStep = (s: number): Record<string, string> => {
         const errors: Record<string, string> = {};
         const msg = 'Please answer this question before continuing.';
         if (s === 1) {
+            if (!screenerAnswers.q1) errors.q1 = msg;
+            if (!screenerAnswers.q2) errors.q2 = msg;
+            if (!screenerAnswers.q3) errors.q3 = msg;
+        }
+        if (s === 2) {
             if (!formData.country) errors.country = msg;
             if (!formData.city.trim()) errors.city = msg;
             const ageNum = parseInt(formData.age);
@@ -148,12 +176,12 @@ function T0Content() {
                 errors.age = 'Please enter a valid age between 18 and 99.';
             if (!formData.gender) errors.gender = msg;
         }
-        if (s === 2) {
+        if (s === 3) {
             if (!formData.past_category) errors.past_category = msg;
             if (formData.past_category === 'Other' && !formData.past_category_other.trim())
                 errors.past_category_other = 'Please specify your answer.';
         }
-        if (s === 3) {
+        if (s === 4) {
             if (!formData.goal_category) errors.goal_category = msg;
             if (formData.goal_category === 'Other' && !formData.goal_category_other.trim())
                 errors.goal_category_other = 'Please specify your answer.';
@@ -168,6 +196,39 @@ function T0Content() {
         }, 50);
     };
 
+    // Screener answer checking + failure recording
+    const handleScreenerNext = async () => {
+        const errors = validateStep(1);
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            scrollToFirstError();
+            return;
+        }
+        setFieldErrors({});
+
+        // Check correctness
+        const correct =
+            screenerAnswers.q1 === 'A book' &&
+            screenerAnswers.q2 === 'Yawning' &&
+            screenerAnswers.q3 === 'Piano';
+
+        if (!correct) {
+            // Record failure permanently
+            try {
+                await fetch('/api/t0/screener', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prolific_pid: prolificPid }),
+                });
+            } catch { /* best effort */ }
+            setScreenFailed(true);
+            return;
+        }
+
+        setStep(2);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const goNext = () => {
         const errors = validateStep(step);
         if (Object.keys(errors).length > 0) {
@@ -177,13 +238,13 @@ function T0Content() {
         }
         setFieldErrors({});
 
-        // Intercept: if step 1 and country is "Other", show confirmation
-        if (step === 1 && formData.country === 'Other') {
+        // Intercept: if step 2 and country is "Other", show confirmation
+        if (step === 2 && formData.country === 'Other') {
             setShowOtherConfirm(true);
             return;
         }
 
-        setStep(prev => Math.min(prev + 1, 3));
+        setStep(prev => Math.min(prev + 1, 4));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -195,7 +256,7 @@ function T0Content() {
 
     // ─── Submit ──────────────────────────────────────────────────
     const handleSubmit = async () => {
-        const errors = validateStep(3);
+        const errors = validateStep(4);
         if (Object.keys(errors).length > 0) {
             setFieldErrors(errors);
             scrollToFirstError();
@@ -315,6 +376,30 @@ function T0Content() {
         );
     }
 
+    // ─── Render: Screener Failed (permanent) ────────────────────
+    if (screenFailed) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg">
+                    <CardHeader>
+                        <CardTitle className="text-destructive flex items-center gap-2">
+                            <AlertCircle className="h-6 w-6" />
+                            Study Closed
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground text-lg">
+                            Unfortunately, you do not meet the criteria for this study.
+                        </p>
+                    </CardContent>
+                    <CardFooter>
+                        <p className="text-sm text-muted-foreground">Please return the submission on Prolific.</p>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
+
     // ─── Render: Already Completed T0 ────────────────────────────
     if (alreadyCompleted) {
         return (
@@ -394,8 +479,8 @@ function T0Content() {
                     <p className="text-sm text-muted-foreground">ID: {prolificPid}</p>
                 </div>
 
-                {/* Progress – only for Steps 1-3 */}
-                {step > 0 && <StepIndicator current={step} total={3} />}
+                {/* Progress – only for Steps 1-4 */}
+                {step > 0 && <StepIndicator current={step} total={4} />}
 
                 {/* ─── STEP 0: Informed Consent ────────────────────── */}
                 {step === 0 && (
@@ -466,8 +551,79 @@ function T0Content() {
                     </Card>
                 )}
 
-                {/* ─── STEP 1: About You ─────────────────────────── */}
+                {/* ─── STEP 1: Screener ─────────────────────────────── */}
                 {step === 1 && (
+                    <Card>
+                        <CardContent className="space-y-8 pt-6">
+                            {/* Q1: Reading comprehension */}
+                            <div className="space-y-3" data-field-error={!!fieldErrors.q1 || undefined}>
+                                <p className="text-base leading-relaxed">
+                                    Matt and Alex are best friends.<br />
+                                    Alex&apos;s birthday is coming up soon.<br />
+                                    Matt wanted to buy Alex a computer or a television, but they were too expensive.<br />
+                                    Instead, he bought him a book.
+                                </p>
+                                <Label className="text-lg">What did Matt buy? *</Label>
+                                <RadioGroup
+                                    value={screenerAnswers.q1 || ''}
+                                    onValueChange={(value) => handleScreenerChange('q1', value)}
+                                >
+                                    {['A computer', 'A television', 'A book', 'His birthday'].map(opt => (
+                                        <div key={opt} className="flex items-center space-x-3 py-1">
+                                            <RadioGroupItem value={opt} id={`sq1-${opt}`} />
+                                            <Label htmlFor={`sq1-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.q1 && <p className="text-sm text-red-500">{fieldErrors.q1}</p>}
+                            </div>
+
+                            {/* Q2: Image recognition */}
+                            <div className="space-y-3" data-field-error={!!fieldErrors.q2 || undefined}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/screener/yawning.png" alt="Character" className="rounded-lg max-w-xs mx-auto" />
+                                <Label className="text-lg">What is the character above doing? *</Label>
+                                <RadioGroup
+                                    value={screenerAnswers.q2 || ''}
+                                    onValueChange={(value) => handleScreenerChange('q2', value)}
+                                >
+                                    {['Yawning', 'Building', 'Dodging', 'Running'].map(opt => (
+                                        <div key={opt} className="flex items-center space-x-3 py-1">
+                                            <RadioGroupItem value={opt} id={`sq2-${opt}`} />
+                                            <Label htmlFor={`sq2-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.q2 && <p className="text-sm text-red-500">{fieldErrors.q2}</p>}
+                            </div>
+
+                            {/* Q3: Audio recognition */}
+                            <div className="space-y-3" data-field-error={!!fieldErrors.q3 || undefined}>
+                                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                <audio controls className="w-full">
+                                    <source src="/screener/audio.mp3" type="audio/mpeg" />
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <Label className="text-lg">Which instrument can you hear in the audio example? *</Label>
+                                <RadioGroup
+                                    value={screenerAnswers.q3 || ''}
+                                    onValueChange={(value) => handleScreenerChange('q3', value)}
+                                >
+                                    {['Piano', 'Drums', 'Guitar', 'Violin'].map(opt => (
+                                        <div key={opt} className="flex items-center space-x-3 py-1">
+                                            <RadioGroupItem value={opt} id={`sq3-${opt}`} />
+                                            <Label htmlFor={`sq3-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.q3 && <p className="text-sm text-red-500">{fieldErrors.q3}</p>}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* ─── STEP 2: About You ─────────────────────────── */}
+                {step === 2 && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-2xl">Please answer the following questions.</CardTitle>
@@ -535,8 +691,8 @@ function T0Content() {
                     </Card>
                 )}
 
-                {/* ─── STEP 2: Recent Online Activity ────────────── */}
-                {step === 2 && (
+                {/* ─── STEP 3: Recent Online Activity ────────────── */}
+                {step === 3 && (
                     <Card>
                         <CardContent className="space-y-4 pt-6">
                             <div className="space-y-3" data-field-error={!!fieldErrors.past_category || undefined}>
@@ -572,8 +728,8 @@ function T0Content() {
                     </Card>
                 )}
 
-                {/* ─── STEP 3: Plans for the Coming Days ─────────── */}
-                {step === 3 && (
+                {/* ─── STEP 4: Plans for the Coming Days ─────────── */}
+                {step === 4 && (
                     <Card>
                         <CardContent className="space-y-4 pt-6">
                             <div className="space-y-3" data-field-error={!!fieldErrors.goal_category || undefined}>
@@ -647,7 +803,19 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step >= 1 && step < 3 && (
+                    {step === 1 && (
+                        <Button
+                            type="button"
+                            size="lg"
+                            className="flex-1 text-lg py-6"
+                            onClick={handleScreenerNext}
+                        >
+                            Next
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
+                    )}
+
+                    {step >= 2 && step < 4 && (
                         <Button
                             type="button"
                             size="lg"
@@ -659,7 +827,7 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step === 3 && (
+                    {step === 4 && (
                         <Button
                             type="button"
                             size="lg"
