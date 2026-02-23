@@ -563,7 +563,7 @@ function T0Content() {
                                     Matt wanted to buy Alex a computer or a television, but they were too expensive.<br />
                                     Instead, he bought him a book.
                                 </p>
-                                <Label className="text-lg">What did Matt buy? *</Label>
+                                <Label className="text-lg mt-4 block">What did Matt buy? *</Label>
                                 <RadioGroup
                                     value={screenerAnswers.q1 || ''}
                                     onValueChange={(value) => handleScreenerChange('q1', value)}
@@ -581,7 +581,7 @@ function T0Content() {
                             {/* Q2: Image recognition */}
                             <div className="space-y-3" data-field-error={!!fieldErrors.q2 || undefined}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/screener/yawning.png" alt="Character" className="rounded-lg max-w-xs mx-auto" />
+                                <img src="/screener/yawning.jpg" alt="Character" className="rounded-lg max-w-xs mx-auto" />
                                 <Label className="text-lg">What is the character above doing? *</Label>
                                 <RadioGroup
                                     value={screenerAnswers.q2 || ''}
@@ -599,12 +599,12 @@ function T0Content() {
 
                             {/* Q3: Audio recognition */}
                             <div className="space-y-3" data-field-error={!!fieldErrors.q3 || undefined}>
+                                <Label className="text-lg">Which instrument can you hear in the audio example? *</Label>
                                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                                 <audio controls className="w-full">
                                     <source src="/screener/audio.mp3" type="audio/mpeg" />
                                     Your browser does not support the audio element.
                                 </audio>
-                                <Label className="text-lg">Which instrument can you hear in the audio example? *</Label>
                                 <RadioGroup
                                     value={screenerAnswers.q3 || ''}
                                     onValueChange={(value) => handleScreenerChange('q3', value)}
