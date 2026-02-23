@@ -256,6 +256,117 @@ async function processMediumHighConditions(): Promise<{ generated: number; error
 }
 
 // ============================================
+// PROCESS NEEDS_FIX (RE-GENERATION)
+// ============================================
+
+async function processNeedsFix(): Promise<{ regenerated: number; errors: number }> {
+    console.log('\n📢 Processing NEEDS_FIX participants (re-generation)...');
+
+    const { data: participants, error } = await supabase
+        .from('participants')
+        .select(`
+            prolific_pid, 
+            condition, 
+            city, 
+            age, 
+            age_range, 
+            country, 
+            past_category, 
+            goal_category,
+            qc_replaced_count
+        `)
+        .in('condition', ['medium', 'high_a', 'high_b'])
+        .eq('audio_status', 'needs_fix')
+        .limit(BATCH_SIZE);
+
+    if (error) {
+        console.error('  ❌ Failed to fetch needs_fix participants:', error.message);
+        return { regenerated: 0, errors: 0 };
+    }
+
+    if (!participants || participants.length === 0) {
+        console.log('  ✅ No NEEDS_FIX participants');
+        return { regenerated: 0, errors: 0 };
+    }
+
+    console.log(`  📋 Found ${participants.length} needs_fix participants`);
+
+    let regenerated = 0;
+    let errors = 0;
+
+    for (const p of participants) {
+        const newVersion = (p.qc_replaced_count || 0) + 1;
+        const audioPath = `${p.prolific_pid}_${p.condition}_v${newVersion}_final.mp3`;
+
+        try {
+            console.log(`  🔄 Re-generating ${p.prolific_pid} (${p.condition}) → v${newVersion}...`);
+
+            // 1. Re-generate stimulus text (always fresh for regen)
+            const stimulusText = getStimulusText({
+                condition: p.condition as 'medium' | 'high_a' | 'high_b',
+                city: p.city,
+                age: p.age,
+                age_range: p.age_range,
+                country: p.country,
+                past_category: p.past_category,
+                goal_category: p.goal_category
+            });
+
+            if (!stimulusText) {
+                throw new Error('Failed to generate stimulus text');
+            }
+
+            // 2. Generate Audio
+            console.log(`     🎙️  Generating audio via ElevenLabs...`);
+            const audioBuffer = await generateAudio(stimulusText, elevenLabsKey!);
+
+            // 3. Stitch with podcast
+            console.log(`     🎧 Stitching with podcast intro/outro...`);
+            const stitchedBuffer = await stitchWithPodcast(audioBuffer, audioPath);
+
+            // 4. Upload
+            console.log(`     ⬆️  Uploading: ${audioPath}...`);
+            await uploadAudio(audioPath, stitchedBuffer);
+
+            // 5. Update DB
+            await supabase
+                .from('participants')
+                .update({
+                    stimulus_text: stimulusText,
+                    audio_status: 'awaiting_second_check',
+                    qc_status: 'awaiting_second_check',
+                    audio_path: audioPath,
+                    audio_generated_at: new Date().toISOString(),
+                    audio_error: null,
+                    qc_replaced_count: newVersion,
+                })
+                .eq('prolific_pid', p.prolific_pid);
+
+            console.log(`     ✅ Complete!`);
+            regenerated++;
+
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+            console.error(`  ❌ ${p.prolific_pid}: ${errorMsg}`);
+
+            await supabase
+                .from('participants')
+                .update({
+                    audio_status: 'error',
+                    audio_error: errorMsg.slice(0, 500),
+                })
+                .eq('prolific_pid', p.prolific_pid);
+
+            errors++;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    return { regenerated, errors };
+}
+
+// ============================================
 // MAIN
 // ============================================
 
@@ -265,11 +376,13 @@ async function main() {
 
     const lowUpdated = await processLowCondition();
     const { generated, errors } = await processMediumHighConditions();
+    const { regenerated, errors: regenErrors } = await processNeedsFix();
 
     console.log('\n=====================================');
     console.log('📊 Summary:');
     console.log(`   LOW updated:    ${lowUpdated}`);
     console.log(`   MEDIUM/HIGH:    ${generated} generated, ${errors} errors`);
+    console.log(`   NEEDS_FIX:      ${regenerated} regenerated, ${regenErrors} errors`);
     console.log('=====================================\n');
 }
 
