@@ -14,7 +14,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +80,31 @@ function T0Content() {
     const [submitted, setSubmitted] = useState(false);
     const [alreadyCompleted, setAlreadyCompleted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [checking, setChecking] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Check on mount if T0 was already completed for this PID
+    useEffect(() => {
+        if (!prolificPid) {
+            setChecking(false);
+            return;
+        }
+
+        const checkExisting = async () => {
+            try {
+                const res = await fetch(`/api/t0/check?prolific_pid=${encodeURIComponent(prolificPid)}`);
+                const data = await res.json();
+                if (data.already_completed_t0) {
+                    setAlreadyCompleted(true);
+                }
+            } catch {
+                // If check fails, allow form (submit guard still protects)
+            }
+            setChecking(false);
+        };
+
+        checkExisting();
+    }, [prolificPid]);
 
     // Options
     const countries = ['UK', 'US', 'Other'];
@@ -317,6 +341,15 @@ function T0Content() {
                         <p>You may now close this tab.</p>
                     </CardContent>
                 </Card>
+            </div>
+        );
+    }
+
+    // ─── Render: Checking for existing submission ─────────────────
+    if (checking) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <p className="text-lg text-muted-foreground">Loading...</p>
             </div>
         );
     }
