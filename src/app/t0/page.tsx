@@ -52,8 +52,9 @@ function T0Content() {
     const studyId = searchParams.get('STUDY_ID') || '';
     const sessionId = searchParams.get('SESSION_ID') || '';
 
-    // Step state
-    const [step, setStep] = useState(1);
+    // Step state (0 = consent, 1-3 = form steps)
+    const [step, setStep] = useState(0);
+    const [consentAnswer, setConsentAnswer] = useState<string>('');
     const startTimeRef = useRef(Date.now());
 
     // Form State (persisted across steps)
@@ -169,7 +170,7 @@ function T0Content() {
 
     const goBack = () => {
         setError(null);
-        setStep(prev => Math.max(prev - 1, 1));
+        setStep(prev => Math.max(prev - 1, 0));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -370,8 +371,77 @@ function T0Content() {
                     <p className="text-sm text-muted-foreground">ID: {prolificPid}</p>
                 </div>
 
-                {/* Progress */}
-                <StepIndicator current={step} total={3} />
+                {/* Progress – only for Steps 1-3 */}
+                {step > 0 && <StepIndicator current={step} total={3} />}
+
+                {/* ─── STEP 0: Informed Consent ────────────────────── */}
+                {step === 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl">Informed Consent</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-base leading-relaxed">
+                            <p>Please read this consent agreement carefully before deciding whether to participate in this study.</p>
+
+                            <p><strong>Purpose of the research study:</strong><br />
+                                The purpose of this study is to investigate how people perceive and evaluate audio content in a digital environment.</p>
+
+                            <p><strong>What you will do in the study:</strong><br />
+                                This study consists of two parts. In Part 1, you will answer survey questions. In Part 2, you will listen to an audio recording and answer follow-up questions. Part 2 will take place 7 days after submitting Part 1.</p>
+
+                            <p><strong>Time required:</strong><br />
+                                Part 1 will take approximately 1–2 minutes. Part 2 will take approximately 3 minutes.</p>
+
+                            <p><strong>Risks:</strong><br />
+                                There are no anticipated risks associated with participating in this study.</p>
+
+                            <p><strong>Benefits:</strong><br />
+                                There are no direct benefits to you for participating in this research study. The findings may help researchers better understand how people behave. We hope that, in the future, other people might benefit from this study.</p>
+
+                            <p><strong>Confidentiality:</strong><br />
+                                Your data will be anonymous, meaning your name will not be collected or linked to it. The data collected by investigators will not be linked to your identity. Researchers will not ascertain identities based on demographic information. If we write a report or article about this research project, your identity will be protected to the maximum extent possible. In addition, we will not maintain any identifiable information about you after you get paid. All data will be deleted upon completion of the study.</p>
+
+                            <p><strong>Voluntary participation:</strong><br />
+                                Your participation in this study is completely voluntary.</p>
+
+                            <p><strong>Right to withdraw from the study:</strong><br />
+                                You have the right to withdraw from the study at any time without penalty. If you decide not to participate or to stop participating, you will not lose any benefits to which you are otherwise entitled.</p>
+
+                            <p><strong>How to withdraw from the study:</strong><br />
+                                If you wish to withdraw before completing the study, you may simply close the survey window. Your responses will not be recorded if you withdraw before submitting them. Because the study is anonymous, it is not possible to remove your data after submission. You will still receive full payment in accordance with Prolific&apos;s policies.</p>
+
+                            <p><strong>Payment:</strong><br />
+                                You will receive payment as specified on Prolific for completing the full study. You will only receive the payment if you complete both parts of the study.</p>
+
+                            <p><strong>Contact information:</strong><br />
+                                If you have questions about this study, please contact:<br />
+                                [Your Name]<br />
+                                [Your University]<br />
+                                [Your Email Address]</p>
+
+                            <hr className="my-4" />
+
+                            <div className="space-y-3">
+                                <Label className="text-lg leading-snug">
+                                    Do you agree to participate in the research study described above? *
+                                </Label>
+                                <RadioGroup
+                                    value={consentAnswer}
+                                    onValueChange={(value) => setConsentAnswer(value)}
+                                >
+                                    <div className="flex items-center space-x-3 py-1">
+                                        <RadioGroupItem value="Yes" id="consent-yes" />
+                                        <Label htmlFor="consent-yes" className="text-base font-normal cursor-pointer">Yes</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-3 py-1">
+                                        <RadioGroupItem value="No" id="consent-no" />
+                                        <Label htmlFor="consent-no" className="text-base font-normal cursor-pointer">No</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* ─── STEP 1: About You ─────────────────────────── */}
                 {step === 1 && (
@@ -515,7 +585,7 @@ function T0Content() {
 
                 {/* ─── Navigation Buttons ─────────────────────────── */}
                 <div className="flex gap-4">
-                    {step > 1 && (
+                    {step > 0 && (
                         <Button
                             type="button"
                             variant="outline"
@@ -528,7 +598,20 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step < 3 && (
+                    {step === 0 && (
+                        <Button
+                            type="button"
+                            size="lg"
+                            className="flex-1 text-lg py-6"
+                            onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            disabled={consentAnswer !== 'Yes'}
+                        >
+                            Continue
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
+                    )}
+
+                    {step >= 1 && step < 3 && (
                         <Button
                             type="button"
                             size="lg"
