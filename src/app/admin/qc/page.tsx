@@ -38,8 +38,7 @@ export default function AdminQCPage() {
     const [error, setError] = useState<string | null>(null);
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [regenerating, setRegenerating] = useState(false);
+
 
     // Fetch participants needing QC
     const fetchParticipants = async () => {
@@ -49,11 +48,6 @@ export default function AdminQCPage() {
             const data = await res.json();
             if (data.ok) {
                 setParticipants(data.participants);
-                // Clear selection for any PIDs no longer in the list
-                setSelected(prev => {
-                    const validPids = new Set(data.participants.map((p: Participant) => p.prolific_pid));
-                    return new Set([...prev].filter(pid => validPids.has(pid)));
-                });
             } else {
                 setError(data.error);
             }
@@ -134,59 +128,6 @@ export default function AdminQCPage() {
         setActionLoading(null);
     };
 
-    // Handle batch regeneration
-    const handleRegenerate = async () => {
-        if (selected.size === 0) return;
-        if (!confirm(`Regenerate audio for ${selected.size} participant(s)?\n\nThis will call ElevenLabs TTS, stitch with podcast, and upload new files.`)) return;
-
-        setRegenerating(true);
-        try {
-            const res = await fetch('/api/admin/qc/regenerate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prolific_pids: [...selected] }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                const { summary } = data;
-                alert(`Regeneration complete!\n✅ ${summary.success} succeeded\n❌ ${summary.failed} failed`);
-                setSelected(new Set());
-                await fetchParticipants();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        } catch {
-            alert('Failed to regenerate');
-        }
-        setRegenerating(false);
-    };
-
-    // Toggle selection
-    const toggleSelect = (pid: string) => {
-        setSelected(prev => {
-            const next = new Set(prev);
-            if (next.has(pid)) next.delete(pid);
-            else next.add(pid);
-            return next;
-        });
-    };
-
-    // Select all needs_fix
-    const needsFixPids = participants.filter(p => p.qc_status === 'needs_fix').map(p => p.prolific_pid);
-    const allNeedsFixSelected = needsFixPids.length > 0 && needsFixPids.every(pid => selected.has(pid));
-
-    const toggleSelectAll = () => {
-        if (allNeedsFixSelected) {
-            setSelected(prev => {
-                const next = new Set(prev);
-                needsFixPids.forEach(pid => next.delete(pid));
-                return next;
-            });
-        } else {
-            setSelected(prev => new Set([...prev, ...needsFixPids]));
-        }
-    };
-
     // Group participants by status
     const groups: Record<StatusGroup, Participant[]> = {
         under_review: participants.filter(p => p.qc_status === 'under_review'),
@@ -218,31 +159,6 @@ export default function AdminQCPage() {
                 <p style={styles.empty}>✅ No participants pending QC review.</p>
             ) : (
                 <>
-                    {/* Regenerate bar for needs_fix */}
-                    {needsFixPids.length > 0 && (
-                        <div style={styles.regenBar}>
-                            <label style={styles.selectAllLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={allNeedsFixSelected}
-                                    onChange={toggleSelectAll}
-                                />
-                                Select all Needs Fix ({needsFixPids.length})
-                            </label>
-                            <button
-                                onClick={handleRegenerate}
-                                disabled={selected.size === 0 || regenerating}
-                                style={{
-                                    ...styles.button,
-                                    ...styles.regenBtn,
-                                    opacity: selected.size === 0 || regenerating ? 0.5 : 1,
-                                }}
-                            >
-                                {regenerating ? '⏳ Regenerating...' : `🔄 Regenerate Selected (${selected.size})`}
-                            </button>
-                        </div>
-                    )}
-
                     {/* Grouped sections */}
                     {(Object.keys(GROUP_CONFIG) as StatusGroup[]).map(status => {
                         const group = groups[status];
@@ -261,15 +177,6 @@ export default function AdminQCPage() {
                                         <div key={p.prolific_pid} style={{ ...styles.card, borderLeft: `4px solid ${config.color}` }}>
                                             <div style={styles.cardHeader}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {/* Checkbox only for needs_fix */}
-                                                    {status === 'needs_fix' && (
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selected.has(p.prolific_pid)}
-                                                            onChange={() => toggleSelect(p.prolific_pid)}
-                                                            style={{ width: '18px', height: '18px' }}
-                                                        />
-                                                    )}
                                                     <strong>{p.prolific_pid}</strong>
                                                     <span style={styles.conditionBadge}>{p.condition}</span>
                                                 </div>
@@ -471,29 +378,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         cursor: 'pointer',
         fontWeight: 'bold',
     },
-    regenBar: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 16px',
-        background: '#fff3e0',
-        border: '1px solid #ffcc80',
-        borderRadius: '8px',
-        marginBottom: '24px',
-    },
-    selectAllLabel: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '14px',
-    },
-    regenBtn: {
-        background: '#e65100',
-        color: 'white',
-        fontSize: '14px',
-    },
+
     refreshBtn: {
         marginTop: '24px',
         padding: '12px 24px',

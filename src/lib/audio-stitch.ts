@@ -6,11 +6,14 @@
  * using ffmpeg. All inputs are first normalized to uniform WAV (PCM s16le,
  * 44100 Hz, stereo) before concatenation to avoid glitches from mismatched
  * formats. The final output is encoded as MP3 at 160 kbps.
+ * 
+ * Uses os.tmpdir() for Vercel compatibility (/tmp on serverless).
  */
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
@@ -18,9 +21,6 @@ const execFileAsync = promisify(execFile);
 // Paths to static podcast snippets (relative to project root)
 const PODCAST_BEFORE = path.resolve(process.cwd(), 'assets/podcast/podcast_before.mp3');
 const PODCAST_AFTER = path.resolve(process.cwd(), 'assets/podcast/podcast_after.mp3');
-
-// Temp directory for intermediate files
-const TEMP_DIR = path.resolve(process.cwd(), '.tmp/audio');
 
 /**
  * Get the path to the ffmpeg binary.
@@ -32,15 +32,6 @@ function getFfmpegPath(): string {
         return require('ffmpeg-static');
     } catch {
         return 'ffmpeg';
-    }
-}
-
-/**
- * Ensure the temp directory exists.
- */
-function ensureTempDir(): void {
-    if (!fs.existsSync(TEMP_DIR)) {
-        fs.mkdirSync(TEMP_DIR, { recursive: true });
     }
 }
 
@@ -64,6 +55,8 @@ async function normalizeToWav(ffmpeg: string, input: string, outputWav: string):
  *   2. Concatenate WAVs via concat demuxer
  *   3. Encode final output as MP3 (160 kbps)
  * 
+ * Uses os.tmpdir() for Vercel compatibility (writes to /tmp on serverless).
+ * 
  * @param adBuffer - The raw MP3 buffer of the generated ad
  * @param outputName - Name for the output file (e.g., "low_final.mp3")
  * @returns The stitched MP3 as a Buffer
@@ -77,20 +70,18 @@ export async function stitchWithPodcast(adBuffer: Buffer, outputName: string): P
         throw new Error(`Missing podcast outro: ${PODCAST_AFTER}`);
     }
 
-    ensureTempDir();
-
     const ffmpeg = getFfmpegPath();
-    const ts = Date.now();
 
-    // Temp file paths
-    const adMp3Path = path.join(TEMP_DIR, `ad_${ts}.mp3`);
-    const beforeWav = path.join(TEMP_DIR, `before_${ts}.wav`);
-    const adWav = path.join(TEMP_DIR, `ad_${ts}.wav`);
-    const afterWav = path.join(TEMP_DIR, `after_${ts}.wav`);
-    const listPath = path.join(TEMP_DIR, `list_${ts}.txt`);
-    const outputPath = path.join(TEMP_DIR, outputName);
+    // Create unique temp directory under os.tmpdir() (Vercel-safe: /tmp)
+    const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-stitch-'));
 
-    const tempFiles = [adMp3Path, beforeWav, adWav, afterWav, listPath, outputPath];
+    // Temp file paths inside the unique work directory
+    const adMp3Path = path.join(workDir, 'ad.mp3');
+    const beforeWav = path.join(workDir, 'before.wav');
+    const adWav = path.join(workDir, 'ad.wav');
+    const afterWav = path.join(workDir, 'after.wav');
+    const listPath = path.join(workDir, 'list.txt');
+    const outputPath = path.join(workDir, outputName);
 
     try {
         // 1. Write ad buffer to temp MP3
@@ -104,7 +95,7 @@ export async function stitchWithPodcast(adBuffer: Buffer, outputName: string): P
             normalizeToWav(ffmpeg, PODCAST_AFTER, afterWav),
         ]);
 
-        // 3. Create concat demuxer list
+        // 3. Create concat demuxer list (absolute paths for safety)
         const listContent = [
             `file '${beforeWav}'`,
             `file '${adWav}'`,
@@ -132,9 +123,9 @@ export async function stitchWithPodcast(adBuffer: Buffer, outputName: string): P
         return stitchedBuffer;
 
     } finally {
-        // Cleanup all temp files
-        for (const f of tempFiles) {
-            try { fs.unlinkSync(f); } catch { /* ignore */ }
-        }
+        // Cleanup entire work directory
+        try {
+            fs.rmSync(workDir, { recursive: true, force: true });
+        } catch { /* ignore cleanup errors */ }
     }
 }
