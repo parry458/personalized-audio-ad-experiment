@@ -14,7 +14,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,7 @@ function T0Content() {
 
     // Step state
     const [step, setStep] = useState(1);
+    const startTimeRef = useRef(Date.now());
 
     // Form State (persisted across steps)
     const [formData, setFormData] = useState({
@@ -197,6 +198,7 @@ function T0Content() {
             goal_category: formData.goal_category === 'Other' ? `Other: ${formData.goal_category_other}` : formData.goal_category,
             attention_check_pass: formData.attention_check === 'Weekly',
             submitted_at: new Date().toISOString(),
+            duration_seconds: Math.round((Date.now() - startTimeRef.current) / 1000),
         };
 
         try {

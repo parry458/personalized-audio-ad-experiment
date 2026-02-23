@@ -69,6 +69,7 @@ function T1Content() {
     const [canContinueAudio, setCanContinueAudio] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
     const playTimeRef = useRef(0);
+    const startTimeRef = useRef(Date.now());
 
     // Get active scales (only those with at least one active item)
     const activeScales = T1_ITEMS.scales.filter(scale =>
@@ -193,6 +194,7 @@ function T1Content() {
                     response_payload: {
                         answers,
                         completed_at: new Date().toISOString(),
+                        duration_seconds: Math.round((Date.now() - startTimeRef.current) / 1000),
                     },
                 }),
             });

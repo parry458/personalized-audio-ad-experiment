@@ -30,6 +30,7 @@ interface T0SubmitRequest {
         busy_challenge?: string;
         attention_check_pass: boolean;
         submitted_at: string;
+        duration_seconds?: number;
         [key: string]: unknown;
     };
 }
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
                 busy_challenge: body.t0_payload.busy_challenge,
                 attention_check_pass: body.t0_payload.attention_check_pass,
                 status: 'pending',
+                t0_duration_seconds: body.t0_payload.duration_seconds ?? null,
             });
 
         if (error) {
