@@ -58,11 +58,29 @@ interface T0SubmitRequest {
     };
 }
 
-// Function to randomly assign condition
-function assignCondition(): 'low' | 'medium' | 'high_a' | 'high_b' {
+// Block randomization: assign to the condition with the fewest participants.
+// If there's a tie, pick randomly among the tied conditions.
+async function assignCondition(): Promise<'low' | 'medium' | 'high_a' | 'high_b'> {
     const conditions = ['low', 'medium', 'high_a', 'high_b'] as const;
-    const randomIndex = Math.floor(Math.random() * conditions.length);
-    return conditions[randomIndex];
+
+    // Count current participants per condition
+    const counts: Record<string, number> = {};
+    for (const c of conditions) {
+        const { count } = await supabaseAdmin
+            .from('participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('condition', c);
+        counts[c] = count ?? 0;
+    }
+
+    // Find the minimum count
+    const minCount = Math.min(...Object.values(counts));
+
+    // Get all conditions tied at the minimum
+    const candidates = conditions.filter(c => counts[c] === minCount);
+
+    // Pick randomly among the tied candidates
+    return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 export async function POST(request: NextRequest) {
@@ -113,7 +131,7 @@ export async function POST(request: NextRequest) {
         let assignedCondition = existingParticipant?.condition;
 
         if (!assignedCondition) {
-            assignedCondition = assignCondition();
+            assignedCondition = await assignCondition();
         }
 
         // ============================================
