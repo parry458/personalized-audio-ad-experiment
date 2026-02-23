@@ -61,19 +61,11 @@ function T0Content() {
         country: '',
         city: '',
         age: '',
+        gender: '',
         past_category: '',
         past_category_other: '',
         goal_category: '',
         goal_category_other: '',
-        podcast_frequency: '',
-        podcast_genres: [] as string[],
-        shortform_frequency: '',
-        favorite_movie_genre: '',
-        streaming_services: [] as string[],
-        devices: [] as string[],
-        notifications_per_day: '',
-        multitask_audio_frequency: '',
-        attention_check: '',
     });
 
     const [showOtherConfirm, setShowOtherConfirm] = useState(false);
@@ -108,7 +100,7 @@ function T0Content() {
     }, [prolificPid]);
 
     // Options
-    const countries = ['UK', 'US', 'Other'];
+    const countries = ['UK', 'USA', 'Other'];
 
     const pastCategories = [
         'Social media scrolling',
@@ -145,6 +137,7 @@ function T0Content() {
             const ageNum = parseInt(formData.age);
             if (!formData.age || isNaN(ageNum) || ageNum < 18 || ageNum > 99)
                 return 'Please enter a valid age between 18 and 99.';
+            if (!formData.gender) return 'Please select your gender.';
         }
         if (s === 2) {
             if (!formData.past_category) return 'Please select an online activity.';
@@ -155,9 +148,6 @@ function T0Content() {
             if (!formData.goal_category) return 'Please select a personal goal.';
             if (formData.goal_category === 'Other' && !formData.goal_category_other.trim())
                 return 'Please specify "Other" for personal goal.';
-        }
-        if (s === 4) {
-            if (!formData.attention_check) return 'Please answer the attention check question.';
         }
         return null;
     };
@@ -173,7 +163,7 @@ function T0Content() {
             return;
         }
 
-        setStep(prev => Math.min(prev + 1, 4));
+        setStep(prev => Math.min(prev + 1, 3));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -185,7 +175,7 @@ function T0Content() {
 
     // ─── Submit ──────────────────────────────────────────────────
     const handleSubmit = async () => {
-        const err = validateStep(4);
+        const err = validateStep(3);
         if (err) { setError(err); return; }
         setError(null);
         setIsSubmitting(true);
@@ -196,7 +186,6 @@ function T0Content() {
             age: ageNum,
             past_category: formData.past_category === 'Other' ? `Other: ${formData.past_category_other}` : formData.past_category,
             goal_category: formData.goal_category === 'Other' ? `Other: ${formData.goal_category_other}` : formData.goal_category,
-            attention_check_pass: formData.attention_check === 'Weekly',
             submitted_at: new Date().toISOString(),
             duration_seconds: Math.round((Date.now() - startTimeRef.current) / 1000),
         };
@@ -382,14 +371,13 @@ function T0Content() {
                 </div>
 
                 {/* Progress */}
-                <StepIndicator current={step} total={4} />
+                <StepIndicator current={step} total={3} />
 
                 {/* ─── STEP 1: About You ─────────────────────────── */}
                 {step === 1 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-2xl">About You</CardTitle>
-                            <CardDescription className="text-base">Tell us a bit about yourself.</CardDescription>
+                            <CardTitle className="text-2xl">Please answer the following questions.</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
@@ -402,7 +390,7 @@ function T0Content() {
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {countries.map(c => <SelectItem key={c} value={c} className="text-base">{c}</SelectItem>)}
+                                        {countries.map(c => <SelectItem key={c} value={c} className="text-base">{c === 'USA' ? 'USA' : c}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -429,6 +417,23 @@ function T0Content() {
                                     className="py-3 px-4 text-base"
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-lg">What is your gender? *</Label>
+                                <Select
+                                    value={formData.gender}
+                                    onValueChange={(value) => handleChange('gender', value)}
+                                >
+                                    <SelectTrigger className="py-3 px-4 text-base">
+                                        <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Male" className="text-base">Male</SelectItem>
+                                        <SelectItem value="Female" className="text-base">Female</SelectItem>
+                                        <SelectItem value="Other" className="text-base">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -436,10 +441,7 @@ function T0Content() {
                 {/* ─── STEP 2: Recent Online Activity ────────────── */}
                 {step === 2 && (
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-2xl">Recent online activity</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 pt-6">
                             <div className="space-y-3">
                                 <Label className="text-lg leading-snug">
                                     Which of the following best describes something you&apos;ve found yourself spending quite a bit of time on online recently (outside of work or study)? *
@@ -472,10 +474,7 @@ function T0Content() {
                 {/* ─── STEP 3: Plans for the Coming Days ─────────── */}
                 {step === 3 && (
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-2xl">Plans for the coming month</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 pt-6">
                             <div className="space-y-3">
                                 <Label className="text-lg leading-snug">
                                     Which of the following best describes one thing you would like to make meaningful progress on over the next month? *
@@ -505,91 +504,6 @@ function T0Content() {
                     </Card>
                 )}
 
-                {/* ─── STEP 4: Media Habits ──────────────────────── */}
-                {step === 4 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-2xl">Media Habits</CardTitle>
-                            <CardDescription className="text-base">A few more questions about your media habits.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="space-y-2">
-                                <Label className="text-lg">How often do you listen to podcasts?</Label>
-                                <Select
-                                    value={formData.podcast_frequency}
-                                    onValueChange={(value) => handleChange('podcast_frequency', value)}
-                                >
-                                    <SelectTrigger className="py-3 px-4 text-base">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Never" className="text-base">Never</SelectItem>
-                                        <SelectItem value="Monthly" className="text-base">Monthly</SelectItem>
-                                        <SelectItem value="Weekly" className="text-base">Weekly</SelectItem>
-                                        <SelectItem value="2-3x week" className="text-base">2-3x week</SelectItem>
-                                        <SelectItem value="Daily" className="text-base">Daily</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-lg">How often do you multitask while listening to audio content?</Label>
-                                <Select
-                                    value={formData.multitask_audio_frequency}
-                                    onValueChange={(value) => handleChange('multitask_audio_frequency', value)}
-                                >
-                                    <SelectTrigger className="py-3 px-4 text-base">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Never" className="text-base">Never</SelectItem>
-                                        <SelectItem value="Rarely" className="text-base">Rarely</SelectItem>
-                                        <SelectItem value="Sometimes" className="text-base">Sometimes</SelectItem>
-                                        <SelectItem value="Often" className="text-base">Often</SelectItem>
-                                        <SelectItem value="Always" className="text-base">Always</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-lg">To show you&apos;re paying attention, please select &apos;Weekly&apos; here. *</Label>
-                                <Select
-                                    value={formData.attention_check}
-                                    onValueChange={(value) => handleChange('attention_check', value)}
-                                >
-                                    <SelectTrigger className="py-3 px-4 text-base">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Never" className="text-base">Never</SelectItem>
-                                        <SelectItem value="Monthly" className="text-base">Monthly</SelectItem>
-                                        <SelectItem value="Weekly" className="text-base">Weekly</SelectItem>
-                                        <SelectItem value="Daily" className="text-base">Daily</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-lg">How many notifications do you estimate you get per day?</Label>
-                                <Select
-                                    value={formData.notifications_per_day}
-                                    onValueChange={(value) => handleChange('notifications_per_day', value)}
-                                >
-                                    <SelectTrigger className="py-3 px-4 text-base">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="0-20" className="text-base">0–20</SelectItem>
-                                        <SelectItem value="21-50" className="text-base">21–50</SelectItem>
-                                        <SelectItem value="51-100" className="text-base">51–100</SelectItem>
-                                        <SelectItem value="100+" className="text-base">100+</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
                 {/* ─── Error Alert ────────────────────────────────── */}
                 {error && (
                     <Alert variant="destructive">
@@ -614,7 +528,7 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step < 4 && (
+                    {step < 3 && (
                         <Button
                             type="button"
                             size="lg"
@@ -626,7 +540,7 @@ function T0Content() {
                         </Button>
                     )}
 
-                    {step === 4 && (
+                    {step === 3 && (
                         <Button
                             type="button"
                             size="lg"
