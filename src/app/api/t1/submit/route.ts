@@ -2,22 +2,13 @@
  * API Route: POST /api/t1/submit
  * ==============================
  * 
- * This endpoint saves T1 survey responses to Supabase.
- * 
- * Request Body:
- *   - prolific_pid: string (required)
- *   - response_payload: object (survey responses)
- * 
- * Response:
- *   - 200: { ok: true }
- *   - 400: { ok: false, error: "Missing prolific_pid" }
- *   - 500: { ok: false, error: <message> }
+ * One-time T1 submission: atomic update that only succeeds
+ * if t1_submitted_at IS NULL (prevents double submission).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-// Define expected request body structure
 interface T1SubmitBody {
     prolific_pid: string;
     response_payload?: Record<string, unknown>;
@@ -42,12 +33,38 @@ export async function POST(request: NextRequest) {
 
         console.log('📥 T1 Submission Received:');
         console.log('  Prolific PID:', body.prolific_pid);
-        console.log('  Payload:', JSON.stringify(body.response_payload, null, 2));
 
         const timestamp = new Date().toISOString();
 
         // ============================================
-        // STEP 3: Insert into responses_t1 table
+        // STEP 3: Atomic update — only if t1_submitted_at IS NULL
+        // ============================================
+        const { data: updated, error: updateError } = await supabaseAdmin
+            .from('participants')
+            .update({ t1_submitted_at: timestamp })
+            .eq('prolific_pid', body.prolific_pid)
+            .is('t1_submitted_at', null)
+            .select('prolific_pid');
+
+        if (updateError) {
+            console.error('❌ Supabase update error:', updateError);
+            return NextResponse.json(
+                { ok: false, error: updateError.message },
+                { status: 500 }
+            );
+        }
+
+        // If no rows were updated, T1 was already submitted
+        if (!updated || updated.length === 0) {
+            console.log(`⚠️ T1 duplicate attempt: ${body.prolific_pid}`);
+            return NextResponse.json({
+                ok: false,
+                already_completed_t1: true,
+            });
+        }
+
+        // ============================================
+        // STEP 4: Insert into responses_t1 table
         // ============================================
         const { error: insertError } = await supabaseAdmin
             .from('responses_t1')
@@ -64,27 +81,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ============================================
-        // STEP 4: Update participants table
-        // ============================================
-        const { error: updateError } = await supabaseAdmin
-            .from('participants')
-            .update({ t1_completed_at: timestamp })
-            .eq('prolific_pid', body.prolific_pid);
-
-        if (updateError) {
-            console.error('❌ Supabase update error:', updateError);
-            return NextResponse.json(
-                { ok: false, error: updateError.message },
-                { status: 500 }
-            );
-        }
-
         console.log('✅ T1 response saved successfully');
 
-        // ============================================
-        // STEP 5: Return success
-        // ============================================
         return NextResponse.json({ ok: true });
 
     } catch (error) {

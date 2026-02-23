@@ -78,6 +78,7 @@ function T0Content() {
     const [showOtherConfirm, setShowOtherConfirm] = useState(false);
     const [screenedOut, setScreenedOut] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [alreadyCompleted, setAlreadyCompleted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -185,7 +186,15 @@ function T0Content() {
                     t0_payload: payload,
                 }),
             });
-            if (!response.ok) throw new Error('Failed to submit data');
+            const data = await response.json();
+
+            // Check for duplicate submission
+            if (data.already_completed_t0) {
+                setAlreadyCompleted(true);
+                return;
+            }
+
+            if (!response.ok && !data.ok) throw new Error(data.error || 'Failed to submit data');
             setSubmitted(true);
         } catch (err: any) {
             setError(err.message || 'Something went wrong');
@@ -262,6 +271,27 @@ function T0Content() {
                     <CardFooter>
                         <p className="text-sm text-muted-foreground">Please return the submission on Prolific.</p>
                     </CardFooter>
+                </Card>
+            </div>
+        );
+    }
+
+    // ─── Render: Already Completed T0 ────────────────────────────
+    if (alreadyCompleted) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg border-blue-200 bg-blue-50/50">
+                    <CardHeader>
+                        <CardTitle className="text-blue-700 flex items-center gap-2">
+                            <CheckCircle2 className="h-6 w-6" />
+                            Already Completed
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-blue-800">
+                        <p>You have already completed Part 1 of this study.</p>
+                        <p>We&apos;ll invite you back for Part 2 via Prolific messaging.</p>
+                        <p>You may now close this tab. Thank you!</p>
+                    </CardContent>
                 </Card>
             </div>
         );

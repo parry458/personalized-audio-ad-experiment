@@ -25,9 +25,10 @@ interface AudioResponse {
     status?: string | null;
     audio_url?: string | null;
     error?: string;
+    already_completed_t1?: boolean;
 }
 
-type Step = 'loading' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error';
+type Step = 'loading' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error' | 'already_completed';
 
 // ============================================
 // PROGRESS INDICATOR (same style as T0)
@@ -98,6 +99,12 @@ function T1Content() {
                 if (data.found === false) {
                     setErrorMessage('Participant not found. Please complete part 1 first.');
                     setStep('error');
+                    return;
+                }
+
+                // Check if T1 already completed
+                if (data.already_completed_t1) {
+                    setStep('already_completed');
                     return;
                 }
 
@@ -193,6 +200,11 @@ function T1Content() {
             const data = await response.json();
 
             if (!data.ok) {
+                // Check for duplicate submission
+                if (data.already_completed_t1) {
+                    setStep('already_completed');
+                    return;
+                }
                 setErrorMessage(data.error || 'Submission failed');
                 setStep('error');
                 return;
@@ -217,6 +229,29 @@ function T1Content() {
                     <Loader2 className="h-6 w-6 animate-spin" />
                     Loading your study...
                 </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: ALREADY COMPLETED
+    // ============================================
+
+    if (step === 'already_completed') {
+        return (
+            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg border-blue-200 bg-blue-50/50">
+                    <CardHeader>
+                        <CardTitle className="text-blue-700 flex items-center gap-2">
+                            <CheckCircle2 className="h-6 w-6" />
+                            Already Completed
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-blue-800">
+                        <p>You have already completed Part 2 of this study.</p>
+                        <p>You may now close this tab. Thank you!</p>
+                    </CardContent>
+                </Card>
             </main>
         );
     }
