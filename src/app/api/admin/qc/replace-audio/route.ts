@@ -3,11 +3,13 @@
  * ======================================
  * 
  * Replaces a participant's audio file.
- * Uploads new MP3, updates participant record, resets QC status.
+ * Accepts an ad-only MP3, stitches it with podcast intro/outro,
+ * uploads the stitched result, and sets awaiting_second_check.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { stitchWithPodcast } from '@/lib/audio-stitch';
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,18 +27,33 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ ok: false, error: 'Missing file' }, { status: 400 });
         }
 
-        // Convert File to ArrayBuffer for upload
+        // Get current participant data for condition + replaced count
+        const { data: currentData, error: fetchError } = await supabaseAdmin
+            .from('participants')
+            .select('condition, qc_replaced_count')
+            .eq('prolific_pid', prolificPid)
+            .single();
+
+        if (fetchError || !currentData) {
+            return NextResponse.json({ ok: false, error: 'Participant not found' }, { status: 404 });
+        }
+
+        const newVersion = (currentData.qc_replaced_count || 0) + 1;
+        const audioPath = `${prolificPid}_${currentData.condition}_v${newVersion}_final.mp3`;
+
+        // Convert uploaded file to Buffer
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = new Uint8Array(arrayBuffer);
+        const adBuffer = Buffer.from(arrayBuffer);
 
-        // Define storage path
-        const audioPath = `${prolificPid}.mp3`;
+        // Stitch with podcast intro/outro
+        console.log(`🎧 Stitching replacement audio for ${prolificPid}...`);
+        const stitchedBuffer = await stitchWithPodcast(adBuffer, audioPath);
 
-        // Upload to Supabase storage (upsert = overwrite if exists)
+        // Upload stitched audio to Supabase storage
         const { error: uploadError } = await supabaseAdmin
             .storage
             .from('ads-audio')
-            .upload(audioPath, buffer, {
+            .upload(audioPath, stitchedBuffer, {
                 contentType: 'audio/mpeg',
                 upsert: true,
             });
@@ -46,16 +63,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ ok: false, error: uploadError.message }, { status: 500 });
         }
 
-        // First, get current qc_replaced_count
-        const { data: currentData } = await supabaseAdmin
-            .from('participants')
-            .select('qc_replaced_count')
-            .eq('prolific_pid', prolificPid)
-            .single();
-
-        const currentCount = currentData?.qc_replaced_count || 0;
-
-        // Update participant record with incremented count
+        // Update participant record
         const { error: updateError } = await supabaseAdmin
             .from('participants')
             .update({
@@ -66,7 +74,7 @@ export async function POST(request: NextRequest) {
                 qc_status: 'awaiting_second_check',
                 qc_checked_at: new Date().toISOString(),
                 qc_notes: qcNotes || null,
-                qc_replaced_count: currentCount + 1,
+                qc_replaced_count: newVersion,
             })
             .eq('prolific_pid', prolificPid);
 
@@ -75,8 +83,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
         }
 
-        console.log('✅ Replaced audio for:', prolificPid);
-        return NextResponse.json({ ok: true });
+        console.log(`✅ Replaced & stitched audio for: ${prolificPid} → ${audioPath}`);
+        return NextResponse.json({ ok: true, audio_path: audioPath });
 
     } catch (error) {
         console.error('❌ Unexpected error:', error);
