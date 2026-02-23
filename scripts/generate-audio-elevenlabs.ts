@@ -219,10 +219,14 @@ async function processNonLowConditions(): Promise<{ generated: number; regenerat
             await uploadAudio(audioPath, stitchedBuffer);
 
             // 5. Update participant record
+            // First-gen → under_review (first check)
+            // Re-gen   → awaiting_second_check
+            const newStatus = isRegen ? 'awaiting_second_check' : 'under_review';
+
             const updatePayload: Record<string, unknown> = {
                 stimulus_text: finalStimulusText,
-                audio_status: 'awaiting_second_check',
-                qc_status: 'awaiting_second_check',
+                audio_status: newStatus,
+                qc_status: newStatus,
                 audio_path: audioPath,
                 audio_generated_at: new Date().toISOString(),
                 audio_error: null,
