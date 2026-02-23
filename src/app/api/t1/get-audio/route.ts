@@ -92,19 +92,17 @@ export async function GET(request: NextRequest) {
         // ============================================
         const participant = data as ParticipantAudioData;
 
-        // 1. LOW Condition: Always playable
+        // 1. LOW Condition: Always playable (shared file)
         if (participant.condition === 'low') {
-            console.log('✅ LOW condition, serving low.mp3');
+            console.log('✅ LOW condition, serving low_final.mp3');
 
-            // Generate signed URL for low.mp3
             const { data: signedData, error: signedError } = await supabaseAdmin
                 .storage
                 .from('ads-audio')
-                .createSignedUrl('low.mp3', 600);
+                .createSignedUrl('low_final.mp3', 600);
 
             if (signedError) {
-                console.error('❌ Error signing low.mp3:', signedError);
-                // Fallback or error?
+                console.error('❌ Error signing low_final.mp3:', signedError);
             }
 
             return NextResponse.json({
@@ -128,9 +126,9 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 3. Under Review (QC Pending)
-        if (participant.audio_status === 'under_review' || participant.qc_status === 'pending') {
-            console.log('🔒 Audio under QC review:', prolificPid);
+        // 3. Under Review (first check)
+        if (participant.audio_status === 'under_review' || participant.qc_status === 'under_review') {
+            console.log('🔒 Audio awaiting first review:', prolificPid);
             return NextResponse.json({
                 ok: true,
                 found: true,
@@ -139,12 +137,33 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 4. Ready & Approved
+        // 4. Needs Fix
+        if (participant.audio_status === 'needs_fix' || participant.qc_status === 'needs_fix') {
+            console.log('⚠️ Audio flagged for revision:', prolificPid);
+            return NextResponse.json({
+                ok: true,
+                found: true,
+                status: 'needs_fix',
+                audio_url: null,
+            });
+        }
+
+        // 5. Awaiting Second Check (after replacement/regeneration)
+        if (participant.audio_status === 'awaiting_second_check' || participant.qc_status === 'awaiting_second_check') {
+            console.log('🔒 Audio awaiting second review:', prolificPid);
+            return NextResponse.json({
+                ok: true,
+                found: true,
+                status: 'awaiting_second_check',
+                audio_url: null,
+            });
+        }
+
+        // 6. Ready & Approved
         if (participant.audio_status === 'ready' && participant.qc_status === 'approved' && participant.audio_path) {
             console.log('✅ Audio ready and approved:', prolificPid);
 
-            // Generate signed URL
-            const { data: signedData, error: signedError } = await supabaseAdmin
+            const { data: signedData } = await supabaseAdmin
                 .storage
                 .from('ads-audio')
                 .createSignedUrl(participant.audio_path, 600);

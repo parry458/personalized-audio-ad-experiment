@@ -28,8 +28,8 @@ export async function GET() {
             .from('participants')
             .select('prolific_pid, condition, audio_status, audio_path, audio_generated_at, qc_status, qc_checked_at, qc_notes, qc_replaced_count')
             .in('condition', ['medium', 'high', 'high_a', 'high_b'])
-            .in('audio_status', ['under_review', 'error'])
-            .in('qc_status', ['pending', 'needs_fix'])
+            .in('audio_status', ['under_review', 'needs_fix', 'awaiting_second_check', 'error'])
+            .in('qc_status', ['under_review', 'needs_fix', 'awaiting_second_check'])
             .order('audio_generated_at', { ascending: false });
 
         if (error) {

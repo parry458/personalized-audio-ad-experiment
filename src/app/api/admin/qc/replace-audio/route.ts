@@ -59,11 +59,11 @@ export async function POST(request: NextRequest) {
         const { error: updateError } = await supabaseAdmin
             .from('participants')
             .update({
-                audio_status: 'generated',
+                audio_status: 'awaiting_second_check',
                 audio_path: audioPath,
                 audio_generated_at: new Date().toISOString(),
                 audio_error: null,
-                qc_status: 'pending',
+                qc_status: 'awaiting_second_check',
                 qc_checked_at: new Date().toISOString(),
                 qc_notes: qcNotes || null,
                 qc_replaced_count: currentCount + 1,

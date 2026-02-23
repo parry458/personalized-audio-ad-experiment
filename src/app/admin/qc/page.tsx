@@ -151,9 +151,17 @@ export default function AdminQCPage() {
                                 </div>
                                 <span style={{
                                     ...styles.badge,
-                                    background: p.qc_status === 'needs_fix' ? '#f44336' : (p.audio_status === 'error' ? '#d32f2f' : '#ff9800'),
+                                    background:
+                                        p.audio_status === 'error' ? '#d32f2f' :
+                                            p.qc_status === 'needs_fix' ? '#f44336' :
+                                                p.qc_status === 'awaiting_second_check' ? '#2196f3' :
+                                                    '#ff9800',
                                 }}>
-                                    {p.audio_status === 'error' ? 'ERROR' : p.qc_status}
+                                    {p.audio_status === 'error' ? 'ERROR' :
+                                        p.qc_status === 'under_review' ? 'Awaiting First Check' :
+                                            p.qc_status === 'needs_fix' ? 'Needs Fix' :
+                                                p.qc_status === 'awaiting_second_check' ? 'Awaiting Second Check' :
+                                                    p.qc_status}
                                 </span>
                             </div>
 

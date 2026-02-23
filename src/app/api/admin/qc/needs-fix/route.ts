@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
             .from('participants')
             .update({
                 qc_status: 'needs_fix',
+                audio_status: 'needs_fix',
                 qc_checked_at: new Date().toISOString(),
                 qc_notes: qc_notes || null,
             })

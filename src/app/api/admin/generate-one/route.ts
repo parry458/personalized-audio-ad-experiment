@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
             .from('participants')
             .update({
                 audio_status: 'under_review',
-                qc_status: 'pending',
+                qc_status: 'under_review',
                 audio_path: audioPath,
                 audio_generated_at: new Date().toISOString(),
                 audio_error: null,
