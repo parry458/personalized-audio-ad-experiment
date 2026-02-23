@@ -30,7 +30,7 @@ interface ParticipantAudioData {
     audio_error: string | null;
     audio_generated_at: string | null;
     qc_status: string | null;
-    t1_submitted_at: string | null;
+    t1_completed_at: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         // ============================================
         const { data, error } = await supabaseAdmin
             .from('participants')
-            .select('prolific_pid, condition, audio_status, audio_path, audio_error, audio_generated_at, qc_status, t1_submitted_at')
+            .select('prolific_pid, condition, audio_status, audio_path, audio_error, audio_generated_at, qc_status, t1_completed_at')
             .eq('prolific_pid', prolificPid)
             .single();
 
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         const participant = data as ParticipantAudioData;
 
         // 0. T1 already submitted — gate before anything else
-        if (participant.t1_submitted_at) {
+        if (participant.t1_completed_at) {
             return NextResponse.json({
                 ok: true,
                 found: true,
