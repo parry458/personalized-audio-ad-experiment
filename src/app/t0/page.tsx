@@ -75,7 +75,7 @@ function T0Content() {
     const [alreadyCompleted, setAlreadyCompleted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [checking, setChecking] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
     // Check on mount if T0 was already completed for this PID
     useEffect(() => {
@@ -127,36 +127,55 @@ function T0Content() {
     // ─── Handlers ────────────────────────────────────────────────
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        // Country "Other" is now handled at step navigation, not here
+        // Clear inline error for this field when user corrects it
+        setFieldErrors(prev => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
     };
 
     // ─── Step Validation ─────────────────────────────────────────
-    const validateStep = (s: number): string | null => {
+    const validateStep = (s: number): Record<string, string> => {
+        const errors: Record<string, string> = {};
+        const msg = 'Please answer this question before continuing.';
         if (s === 1) {
-            if (!formData.country) return 'Please select your country.';
-            if (!formData.city.trim()) return 'Please enter your city.';
+            if (!formData.country) errors.country = msg;
+            if (!formData.city.trim()) errors.city = msg;
             const ageNum = parseInt(formData.age);
             if (!formData.age || isNaN(ageNum) || ageNum < 18 || ageNum > 99)
-                return 'Please enter a valid age between 18 and 99.';
-            if (!formData.gender) return 'Please select your gender.';
+                errors.age = 'Please enter a valid age between 18 and 99.';
+            if (!formData.gender) errors.gender = msg;
         }
         if (s === 2) {
-            if (!formData.past_category) return 'Please select an online activity.';
+            if (!formData.past_category) errors.past_category = msg;
             if (formData.past_category === 'Other' && !formData.past_category_other.trim())
-                return 'Please specify "Other" for online activity.';
+                errors.past_category_other = 'Please specify your answer.';
         }
         if (s === 3) {
-            if (!formData.goal_category) return 'Please select a personal goal.';
+            if (!formData.goal_category) errors.goal_category = msg;
             if (formData.goal_category === 'Other' && !formData.goal_category_other.trim())
-                return 'Please specify "Other" for personal goal.';
+                errors.goal_category_other = 'Please specify your answer.';
         }
-        return null;
+        return errors;
+    };
+
+    const scrollToFirstError = () => {
+        setTimeout(() => {
+            const el = document.querySelector('[data-field-error="true"]');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
     };
 
     const goNext = () => {
-        const err = validateStep(step);
-        if (err) { setError(err); return; }
-        setError(null);
+        const errors = validateStep(step);
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            scrollToFirstError();
+            return;
+        }
+        setFieldErrors({});
 
         // Intercept: if step 1 and country is "Other", show confirmation
         if (step === 1 && formData.country === 'Other') {
@@ -169,16 +188,20 @@ function T0Content() {
     };
 
     const goBack = () => {
-        setError(null);
+        setFieldErrors({});
         setStep(prev => Math.max(prev - 1, 0));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // ─── Submit ──────────────────────────────────────────────────
     const handleSubmit = async () => {
-        const err = validateStep(3);
-        if (err) { setError(err); return; }
-        setError(null);
+        const errors = validateStep(3);
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            scrollToFirstError();
+            return;
+        }
+        setFieldErrors({});
         setIsSubmitting(true);
 
         const ageNum = parseInt(formData.age);
@@ -213,7 +236,7 @@ function T0Content() {
             if (!response.ok && !data.ok) throw new Error(data.error || 'Failed to submit data');
             setSubmitted(true);
         } catch (err: any) {
-            setError(err.message || 'Something went wrong');
+            setFieldErrors({ _submit: err.message || 'Something went wrong' });
         } finally {
             setIsSubmitting(false);
         }
@@ -450,33 +473,35 @@ function T0Content() {
                             <CardTitle className="text-2xl">Please answer the following questions.</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="space-y-2">
+                            <div className="space-y-2" data-field-error={!!fieldErrors.country || undefined}>
                                 <Label className="text-lg">Which country are you currently in? *</Label>
                                 <Select
                                     value={formData.country}
                                     onValueChange={(value) => handleChange('country', value)}
                                 >
-                                    <SelectTrigger className="py-3 px-4 text-base">
+                                    <SelectTrigger className={`py-3 px-4 text-base ${fieldErrors.country ? 'border-red-500 ring-red-500' : ''}`}>
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {countries.map(c => <SelectItem key={c} value={c} className="text-base">{c === 'USA' ? 'USA' : c}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
+                                {fieldErrors.country && <p className="text-sm text-red-500">{fieldErrors.country}</p>}
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2" data-field-error={!!fieldErrors.city || undefined}>
                                 <Label className="text-lg">What city or town do you currently live in? *</Label>
                                 <Input
                                     type="text"
                                     value={formData.city}
                                     onChange={(e) => handleChange('city', e.target.value)}
                                     placeholder="e.g. London"
-                                    className="py-3 px-4 text-base"
+                                    className={`py-3 px-4 text-base ${fieldErrors.city ? 'border-red-500 ring-red-500' : ''}`}
                                 />
+                                {fieldErrors.city && <p className="text-sm text-red-500">{fieldErrors.city}</p>}
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2" data-field-error={!!fieldErrors.age || undefined}>
                                 <Label className="text-lg">What is your age? *</Label>
                                 <Input
                                     type="number"
@@ -484,17 +509,18 @@ function T0Content() {
                                     value={formData.age}
                                     onChange={(e) => handleChange('age', e.target.value)}
                                     placeholder="18–99"
-                                    className="py-3 px-4 text-base"
+                                    className={`py-3 px-4 text-base ${fieldErrors.age ? 'border-red-500 ring-red-500' : ''}`}
                                 />
+                                {fieldErrors.age && <p className="text-sm text-red-500">{fieldErrors.age}</p>}
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2" data-field-error={!!fieldErrors.gender || undefined}>
                                 <Label className="text-lg">What is your gender? *</Label>
                                 <Select
                                     value={formData.gender}
                                     onValueChange={(value) => handleChange('gender', value)}
                                 >
-                                    <SelectTrigger className="py-3 px-4 text-base">
+                                    <SelectTrigger className={`py-3 px-4 text-base ${fieldErrors.gender ? 'border-red-500 ring-red-500' : ''}`}>
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -503,6 +529,7 @@ function T0Content() {
                                         <SelectItem value="Other" className="text-base">Other</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                {fieldErrors.gender && <p className="text-sm text-red-500">{fieldErrors.gender}</p>}
                             </div>
                         </CardContent>
                     </Card>
@@ -512,7 +539,7 @@ function T0Content() {
                 {step === 2 && (
                     <Card>
                         <CardContent className="space-y-4 pt-6">
-                            <div className="space-y-3">
+                            <div className="space-y-3" data-field-error={!!fieldErrors.past_category || undefined}>
                                 <Label className="text-lg leading-snug">
                                     Which of the following best describes something you&apos;ve found yourself spending quite a bit of time on online recently (outside of work or study)? *
                                 </Label>
@@ -527,14 +554,18 @@ function T0Content() {
                                         </div>
                                     ))}
                                 </RadioGroup>
+                                {fieldErrors.past_category && <p className="text-sm text-red-500">{fieldErrors.past_category}</p>}
                                 {formData.past_category === 'Other' && (
-                                    <Input
-                                        className="mt-2 py-3 px-4 text-base"
-                                        type="text"
-                                        placeholder="Please specify..."
-                                        value={formData.past_category_other}
-                                        onChange={(e) => handleChange('past_category_other', e.target.value)}
-                                    />
+                                    <>
+                                        <Input
+                                            className={`mt-2 py-3 px-4 text-base ${fieldErrors.past_category_other ? 'border-red-500 ring-red-500' : ''}`}
+                                            type="text"
+                                            placeholder="Please specify..."
+                                            value={formData.past_category_other}
+                                            onChange={(e) => handleChange('past_category_other', e.target.value)}
+                                        />
+                                        {fieldErrors.past_category_other && <p className="text-sm text-red-500">{fieldErrors.past_category_other}</p>}
+                                    </>
                                 )}
                             </div>
                         </CardContent>
@@ -545,7 +576,7 @@ function T0Content() {
                 {step === 3 && (
                     <Card>
                         <CardContent className="space-y-4 pt-6">
-                            <div className="space-y-3">
+                            <div className="space-y-3" data-field-error={!!fieldErrors.goal_category || undefined}>
                                 <Label className="text-lg leading-snug">
                                     Which of the following best describes one thing you would like to make meaningful progress on over the next month? *
                                 </Label>
@@ -560,26 +591,31 @@ function T0Content() {
                                         </div>
                                     ))}
                                 </RadioGroup>
+                                {fieldErrors.goal_category && <p className="text-sm text-red-500">{fieldErrors.goal_category}</p>}
                                 {formData.goal_category === 'Other' && (
-                                    <Input
-                                        className="mt-2 py-3 px-4 text-base"
-                                        type="text"
-                                        placeholder="Please specify..."
-                                        value={formData.goal_category_other}
-                                        onChange={(e) => handleChange('goal_category_other', e.target.value)}
-                                    />
+                                    <>
+                                        <Input
+                                            className={`mt-2 py-3 px-4 text-base ${fieldErrors.goal_category_other ? 'border-red-500 ring-red-500' : ''}`}
+                                            type="text"
+                                            placeholder="Please specify..."
+                                            value={formData.goal_category_other}
+                                            onChange={(e) => handleChange('goal_category_other', e.target.value)}
+                                        />
+                                        {fieldErrors.goal_category_other && <p className="text-sm text-red-500">{fieldErrors.goal_category_other}</p>}
+                                    </>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
                 )}
 
-                {/* ─── Error Alert ────────────────────────────────── */}
-                {error && (
+
+                {/* ─── Submit Error ───────────────────────────────── */}
+                {fieldErrors._submit && (
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
-                        <AlertDescription className="text-base">{error}</AlertDescription>
+                        <AlertDescription className="text-base">{fieldErrors._submit}</AlertDescription>
                     </Alert>
                 )}
 

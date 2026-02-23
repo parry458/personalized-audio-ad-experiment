@@ -66,6 +66,7 @@ function T1Content() {
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [currentScaleIndex, setCurrentScaleIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [canContinueAudio, setCanContinueAudio] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
     const playTimeRef = useRef(0);
@@ -162,6 +163,13 @@ function T1Content() {
     // Handle answer change
     const handleAnswerChange = (itemId: string, value: number) => {
         setAnswers(prev => ({ ...prev, [itemId]: value }));
+        // Clear inline error for this item
+        setFieldErrors(prev => {
+            if (!prev[itemId]) return prev;
+            const next = { ...prev };
+            delete next[itemId];
+            return next;
+        });
     };
 
     // Navigate to next scale or submit
@@ -172,6 +180,26 @@ function T1Content() {
         }
 
         if (step === 'survey') {
+            // Validate current scale
+            const scale = activeScales[currentScaleIndex];
+            const activeItems = scale.items.filter(item => item.active);
+            const errors: Record<string, string> = {};
+            activeItems.forEach(item => {
+                if (answers[item.item_id] === undefined) {
+                    errors[item.item_id] = 'Please answer this question before continuing.';
+                }
+            });
+
+            if (Object.keys(errors).length > 0) {
+                setFieldErrors(errors);
+                setTimeout(() => {
+                    const el = document.querySelector('[data-field-error="true"]');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
+                return;
+            }
+            setFieldErrors({});
+
             if (currentScaleIndex < activeScales.length - 1) {
                 setCurrentScaleIndex(prev => prev + 1);
                 window.scrollTo(0, 0);
@@ -423,7 +451,7 @@ function T1Content() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {activeItems.map((item) => (
-                            <div key={item.item_id} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0">
+                            <div key={item.item_id} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0" data-field-error={!!fieldErrors[item.item_id] || undefined}>
                                 {isLikert ? (
                                     <>
                                         <p className="text-base font-medium mb-4">
@@ -497,6 +525,9 @@ function T1Content() {
                                         </div>
                                     </>
                                 )}
+                                {fieldErrors[item.item_id] && (
+                                    <p className="text-sm text-red-500 mt-2">{fieldErrors[item.item_id]}</p>
+                                )}
                             </div>
                         ))}
                     </CardContent>
@@ -505,7 +536,6 @@ function T1Content() {
                             size="lg"
                             className="w-full text-lg py-6"
                             onClick={handleContinue}
-                            disabled={!isCurrentScaleComplete()}
                         >
                             {isLastScale ? 'Submit' : 'Continue'}
                             {!isLastScale && <ChevronRight className="ml-2 h-5 w-5" />}
