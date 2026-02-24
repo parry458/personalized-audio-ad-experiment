@@ -914,6 +914,13 @@ function T1Content() {
     const activeItems = currentScale.items.filter(item => item.active);
     const isLikert = currentScale.type === 'likert';
     const isLastScale = currentScaleIndex >= activeScales.length - 1;
+    const isCompactInline = isLikert || currentScale.scale_id === 'purchase_intention';
+
+    // Per-scale container width
+    const getContainerWidth = () => {
+        if (currentScale.scale_id === 'intrusiveness') return 'max-w-3xl';
+        return 'max-w-4xl';
+    };
 
     // Per-scale instruction text
     const getInstructionText = () => {
@@ -926,9 +933,21 @@ function T1Content() {
         return 'Please rate on the following scales.';
     };
 
+    // Compact header anchors
+    const getLeftAnchor = () => {
+        if (isLikert) return 'Strongly disagree';
+        if (currentScale.scale_id === 'purchase_intention') return 'Very low';
+        return '';
+    };
+    const getRightAnchor = () => {
+        if (isLikert) return 'Strongly agree';
+        if (currentScale.scale_id === 'purchase_intention') return 'Very high';
+        return '';
+    };
+
     return (
         <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className={`${getContainerWidth()} mx-auto space-y-6`}>
                 {/* Header */}
                 <div className="text-center space-y-1">
                     <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
@@ -944,13 +963,13 @@ function T1Content() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-0 pt-2">
-                        {/* Likert anchor header (shown once at top for likert scales) */}
-                        {isLikert && (
+                        {/* Compact anchor header (for likert and purchase_intention) */}
+                        {isCompactInline && (
                             <div className="flex items-end pb-2 border-b border-gray-200 mb-1">
                                 <div className="flex-1 min-w-0" />
                                 <div className="flex items-end flex-shrink-0">
                                     <span className="w-[70px] text-center text-[10px] text-muted-foreground leading-tight">
-                                        Strongly disagree
+                                        {getLeftAnchor()}
                                     </span>
                                     {[1, 2, 3, 4, 5, 6, 7].map(val => (
                                         <span key={val} className="w-10 text-center text-xs font-medium text-gray-500">
@@ -958,7 +977,7 @@ function T1Content() {
                                         </span>
                                     ))}
                                     <span className="w-[70px] text-center text-[10px] text-muted-foreground leading-tight">
-                                        Strongly agree
+                                        {getRightAnchor()}
                                     </span>
                                 </div>
                             </div>
@@ -966,10 +985,12 @@ function T1Content() {
 
                         {activeItems.map((item, idx) => (
                             <div key={item.item_id} className={`py-2.5 ${idx < activeItems.length - 1 ? 'border-b border-gray-100' : ''}`} data-field-error={!!fieldErrors[item.item_id] || undefined}>
-                                {isLikert ? (
+                                {isCompactInline ? (
                                     <div className="flex items-center">
                                         <p className="text-sm font-medium flex-1 min-w-0 pr-3">
-                                            {(item as { text: string }).text}
+                                            {isLikert
+                                                ? (item as { text: string }).text
+                                                : (item as { prompt?: string }).prompt}
                                         </p>
                                         <div className="flex items-center flex-shrink-0">
                                             <span className="w-[70px]" />
