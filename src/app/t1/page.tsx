@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlertCircle, CheckCircle2, Clock, Headphones, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Headphones, ChevronRight, ChevronLeft, Loader2, Play, Volume2 } from 'lucide-react';
 
 // ============================================
 // TYPES
@@ -30,7 +30,7 @@ interface AudioResponse {
     already_completed_t1?: boolean;
 }
 
-type Step = 'loading' | 'consent' | 'screener' | 'screen_failed' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error' | 'already_completed';
+type Step = 'loading' | 'consent' | 'screener' | 'screen_failed' | 'audio_instructions' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error' | 'already_completed';
 
 // ============================================
 // PROGRESS INDICATOR (same style as T0)
@@ -77,6 +77,12 @@ function T1Content() {
     // Consent + Screener state
     const [consentAnswer, setConsentAnswer] = useState<string>('');
     const [screenerAnswers, setScreenerAnswers] = useState<Record<string, string>>({});
+
+    // Custom audio player state
+    const [audioPlaying, setAudioPlaying] = useState(false);
+    const [audioFinished, setAudioFinished] = useState(false);
+    const [audioProgress, setAudioProgress] = useState(0);
+    const [audioDuration, setAudioDuration] = useState(0);
 
     // Get active scales (only those with at least one active item)
     const activeScales = T1_ITEMS.scales.filter(scale =>
@@ -159,11 +165,33 @@ function T1Content() {
     const handleTimeUpdate = () => {
         if (audioRef.current) {
             playTimeRef.current = audioRef.current.currentTime;
+            setAudioProgress(audioRef.current.currentTime);
         }
     };
 
     const handleAudioEnded = () => {
         setCanContinueAudio(true);
+        setAudioPlaying(false);
+        setAudioFinished(true);
+    };
+
+    const handleLoadedMetadata = () => {
+        if (audioRef.current) {
+            setAudioDuration(audioRef.current.duration);
+        }
+    };
+
+    const handlePlayAudio = () => {
+        if (audioRef.current && !audioFinished) {
+            audioRef.current.play();
+            setAudioPlaying(true);
+        }
+    };
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
     // Check if current scale is complete
@@ -238,7 +266,7 @@ function T1Content() {
             return;
         }
 
-        setStep('audio');
+        setStep('audio_instructions');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -641,10 +669,53 @@ function T1Content() {
     }
 
     // ============================================
-    // RENDER: AUDIO STEP
+    // RENDER: AUDIO INSTRUCTIONS (Step 2)
+    // ============================================
+
+    if (step === 'audio_instructions') {
+        return (
+            <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="text-center space-y-1">
+                        <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
+                        <p className="text-base text-muted-foreground">Audio exposure &amp; survey</p>
+                    </div>
+
+                    <Card>
+                        <CardContent className="space-y-4 pt-6 text-base leading-relaxed">
+                            <p>
+                                In the next step, you will be presented with an audio recording. The recording is an excerpt from a podcast and includes an advertising segment.
+                            </p>
+                            <p>
+                                You will be able to listen to the entire audio file by clicking the play button. The recording can only be played once. Please listen carefully to the full audio.
+                            </p>
+                            <p>
+                                After the audio has finished playing, you will be able to proceed to the next step.
+                            </p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                size="lg"
+                                className="w-full text-lg py-6"
+                                onClick={() => { setStep('audio'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            >
+                                Continue
+                                <ChevronRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: AUDIO STEP (Custom Player)
     // ============================================
 
     if (step === 'audio') {
+        const progressPct = audioDuration > 0 ? (audioProgress / audioDuration) * 100 : 0;
+
         return (
             <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-2xl mx-auto space-y-6">
@@ -663,21 +734,65 @@ function T1Content() {
                                 Listen to the Audio
                             </CardTitle>
                             <CardDescription className="text-base">
-                                Please listen carefully to the audio clip below.
+                                Please listen carefully to the full audio clip below. The recording can only be played once.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
+                            {/* Hidden audio element */}
                             <audio
                                 ref={audioRef}
-                                controls
                                 src={audioUrl!}
                                 onTimeUpdate={handleTimeUpdate}
                                 onEnded={handleAudioEnded}
-                                className="w-full"
+                                onLoadedMetadata={handleLoadedMetadata}
+                                preload="metadata"
+                                onContextMenu={(e) => e.preventDefault()}
                             />
-                            <p className="text-sm text-muted-foreground italic">
-                                Please listen fully before continuing.
-                            </p>
+
+                            {/* Custom player UI */}
+                            <div className="flex flex-col items-center space-y-6 py-4">
+                                {/* Large play button */}
+                                <button
+                                    onClick={handlePlayAudio}
+                                    disabled={audioPlaying || audioFinished}
+                                    className={`w-[70px] h-[70px] rounded-full flex items-center justify-center transition-all shadow-lg ${audioFinished
+                                            ? 'bg-gray-300 cursor-not-allowed'
+                                            : audioPlaying
+                                                ? 'bg-blue-400 cursor-not-allowed'
+                                                : 'bg-blue-600 hover:bg-blue-700 cursor-pointer hover:shadow-xl hover:scale-105'
+                                        }`}
+                                    aria-label={audioFinished ? 'Playback complete' : audioPlaying ? 'Playing' : 'Play audio'}
+                                >
+                                    {audioFinished ? (
+                                        <CheckCircle2 className="h-8 w-8 text-white" />
+                                    ) : audioPlaying ? (
+                                        <Volume2 className="h-8 w-8 text-white animate-pulse" />
+                                    ) : (
+                                        <Play className="h-8 w-8 text-white ml-1" />
+                                    )}
+                                </button>
+
+                                {/* Status text */}
+                                <p className={`text-sm font-medium ${audioFinished ? 'text-green-600' : audioPlaying ? 'text-blue-600' : 'text-muted-foreground'
+                                    }`}>
+                                    {audioFinished ? 'Playback complete' : audioPlaying ? 'Playing...' : 'Click to play'}
+                                </p>
+
+                                {/* Progress bar */}
+                                <div className="w-full space-y-2">
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-300 ${audioFinished ? 'bg-green-500' : 'bg-blue-600'
+                                                }`}
+                                            style={{ width: `${progressPct}%` }}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>{formatTime(audioProgress)}</span>
+                                        <span>{formatTime(audioDuration)}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </CardContent>
                         <CardFooter>
                             <Button
