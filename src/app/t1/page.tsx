@@ -2,7 +2,7 @@
  * T1 Page - Complete Study Flow
  * ==============================
  *
- * Flow: Audio Exposure → Relevance → Intrusiveness → Attitude → Purchase Intent → Privacy → Submit
+ * Flow: Consent → Screener → Audio Exposure → Relevance → Intrusiveness → Attitude → Purchase Intent → Privacy → Submit
  */
 
 'use client';
@@ -13,7 +13,9 @@ import { T1_ITEMS } from '@/config/t1_items';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, Clock, Headphones, ChevronRight, Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AlertCircle, CheckCircle2, Clock, Headphones, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 
 // ============================================
 // TYPES
@@ -28,7 +30,7 @@ interface AudioResponse {
     already_completed_t1?: boolean;
 }
 
-type Step = 'loading' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error' | 'already_completed';
+type Step = 'loading' | 'consent' | 'screener' | 'screen_failed' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error' | 'already_completed';
 
 // ============================================
 // PROGRESS INDICATOR (same style as T0)
@@ -72,6 +74,10 @@ function T1Content() {
     const playTimeRef = useRef(0);
     const startTimeRef = useRef(Date.now());
 
+    // Consent + Screener state
+    const [consentAnswer, setConsentAnswer] = useState<string>('');
+    const [screenerAnswers, setScreenerAnswers] = useState<Record<string, string>>({});
+
     // Get active scales (only those with at least one active item)
     const activeScales = T1_ITEMS.scales.filter(scale =>
         scale.items.some(item => item.active)
@@ -89,6 +95,14 @@ function T1Content() {
 
         const fetchAudio = async () => {
             try {
+                // Check T1 screener failure first
+                const screenRes = await fetch(`/api/t1/screener?prolific_pid=${encodeURIComponent(prolificPid)}`);
+                const screenData = await screenRes.json();
+                if (screenData.t1_screen_failed) {
+                    setStep('screen_failed');
+                    return;
+                }
+
                 const response = await fetch(`/api/t1/get-audio?prolific_pid=${encodeURIComponent(prolificPid)}`);
                 const data: AudioResponse = await response.json();
 
@@ -130,7 +144,7 @@ function T1Content() {
                 }
 
                 setAudioUrl(data.audio_url);
-                setStep('audio');
+                setStep('consent');
             } catch (error) {
                 console.error('Error fetching audio:', error);
                 setErrorMessage('Failed to load audio');
@@ -170,6 +184,62 @@ function T1Content() {
             delete next[itemId];
             return next;
         });
+    };
+
+    // Handle screener answer change
+    const handleScreenerChange = (field: string, value: string) => {
+        setScreenerAnswers(prev => ({ ...prev, [field]: value }));
+        setFieldErrors(prev => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
+
+    const scrollToFirstError = () => {
+        setTimeout(() => {
+            const el = document.querySelector('[data-field-error="true"]');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
+    };
+
+    // Screener answer checking + failure recording
+    const handleScreenerNext = async () => {
+        const errors: Record<string, string> = {};
+        const msg = 'Please answer this question before continuing.';
+        if (!screenerAnswers.q1) errors.q1 = msg;
+        if (!screenerAnswers.q2) errors.q2 = msg;
+        if (!screenerAnswers.q3) errors.q3 = msg;
+
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            scrollToFirstError();
+            return;
+        }
+        setFieldErrors({});
+
+        // Check correctness — note Q1 answer is "A birthday cake" for T1
+        const correct =
+            screenerAnswers.q1 === 'A birthday cake' &&
+            screenerAnswers.q2 === 'Yawning' &&
+            screenerAnswers.q3 === 'Piano';
+
+        if (!correct) {
+            // Record failure permanently in participants table
+            try {
+                await fetch('/api/t1/screener', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prolific_pid: prolificPid }),
+                });
+            } catch { /* best effort */ }
+            setStep('screen_failed');
+            return;
+        }
+
+        setStep('audio');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // Navigate to next scale or submit
@@ -259,6 +329,33 @@ function T1Content() {
                     <Loader2 className="h-6 w-6 animate-spin" />
                     Loading your study...
                 </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: SCREEN FAILED (permanent)
+    // ============================================
+
+    if (step === 'screen_failed') {
+        return (
+            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg">
+                    <CardHeader>
+                        <CardTitle className="text-destructive flex items-center gap-2">
+                            <AlertCircle className="h-6 w-6" />
+                            Study Closed
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground text-lg">
+                            Unfortunately, you are not eligible to continue with this study.
+                        </p>
+                    </CardContent>
+                    <CardFooter>
+                        <p className="text-sm text-muted-foreground">Please return the submission on Prolific.</p>
+                    </CardFooter>
+                </Card>
             </main>
         );
     }
@@ -359,6 +456,185 @@ function T1Content() {
                 <div className="flex items-center gap-3 text-lg text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     Submitting your responses...
+                </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: CONSENT (Step 0)
+    // ============================================
+
+    if (step === 'consent') {
+        return (
+            <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="text-center space-y-1">
+                        <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
+                        <p className="text-base text-muted-foreground">Audio exposure &amp; survey</p>
+                    </div>
+
+                    <Card>
+                        <CardContent className="space-y-4 pt-6 text-base leading-relaxed">
+                            <p>
+                                You are now taking part in part 2 of the study you started approximately one week ago.<br />
+                                Part two will take ca. 3 minutes.<br />
+                                For Part 2, you will need to be able to play audio on your device, ideally using headphones or earphones.
+                            </p>
+
+                            <p>
+                                After submitting Part 2 you are eligible for the payment as specified on Prolific for completing the full study.
+                            </p>
+
+                            <p>
+                                If you wish to withdraw before completing the study, you may simply close the survey window. Your responses will not be recorded if you withdraw before submitting them. Because the study is anonymous, it is not possible to remove your data after submission. You will still receive full payment in accordance with Prolific&apos;s policies.
+                            </p>
+
+                            <p>
+                                <strong>Contact information:</strong><br />
+                                If you have questions about this study, please contact:<br />
+                                [Your Name]<br />
+                                [Your University]<br />
+                                [Your Email Address]
+                            </p>
+
+                            <hr className="my-4" />
+
+                            <div className="space-y-3">
+                                <Label className="text-lg leading-snug">
+                                    Do you agree to participate in Part 2 of this study? *
+                                </Label>
+                                <RadioGroup
+                                    value={consentAnswer}
+                                    onValueChange={(value) => setConsentAnswer(value)}
+                                >
+                                    <div className="flex items-center space-x-3 py-1">
+                                        <RadioGroupItem value="Yes" id="t1-consent-yes" />
+                                        <Label htmlFor="t1-consent-yes" className="text-base font-normal cursor-pointer">Yes</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-3 py-1">
+                                        <RadioGroupItem value="No" id="t1-consent-no" />
+                                        <Label htmlFor="t1-consent-no" className="text-base font-normal cursor-pointer">No</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                size="lg"
+                                className="w-full text-lg py-6"
+                                onClick={() => { setStep('screener'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                disabled={consentAnswer !== 'Yes'}
+                            >
+                                Continue
+                                <ChevronRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: SCREENER (Step 1)
+    // ============================================
+
+    if (step === 'screener') {
+        return (
+            <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="text-center space-y-1">
+                        <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
+                        <p className="text-base text-muted-foreground">Audio exposure &amp; survey</p>
+                    </div>
+
+                    <Card>
+                        <CardContent className="space-y-8 pt-6">
+                            {/* Q1: Reading comprehension */}
+                            <div className="space-y-3" data-field-error={!!fieldErrors.q1 || undefined}>
+                                <p className="text-base leading-relaxed">
+                                    Matt and Alex are best friends.<br />
+                                    Alex&apos;s birthday is coming up soon.<br />
+                                    Matt wanted to buy Alex a computer or a television, but they were too expensive.<br />
+                                    Instead, he bought him a birthday cake.
+                                </p>
+                                <Label className="text-lg mt-4 block">What did Matt buy? *</Label>
+                                <RadioGroup
+                                    value={screenerAnswers.q1 || ''}
+                                    onValueChange={(value) => handleScreenerChange('q1', value)}
+                                >
+                                    {['A computer', 'A television', 'A book', 'A birthday cake'].map(opt => (
+                                        <div key={opt} className="flex items-center space-x-3 py-1">
+                                            <RadioGroupItem value={opt} id={`t1sq1-${opt}`} />
+                                            <Label htmlFor={`t1sq1-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.q1 && <p className="text-sm text-red-500">{fieldErrors.q1}</p>}
+                            </div>
+
+                            {/* Q2: Image recognition */}
+                            <div className="space-y-3" data-field-error={!!fieldErrors.q2 || undefined}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/screener/yawning.jpg" alt="Character" className="rounded-lg max-w-xs mx-auto" />
+                                <Label className="text-lg">What is the character above doing? *</Label>
+                                <RadioGroup
+                                    value={screenerAnswers.q2 || ''}
+                                    onValueChange={(value) => handleScreenerChange('q2', value)}
+                                >
+                                    {['Yawning', 'Building', 'Dodging', 'Running'].map(opt => (
+                                        <div key={opt} className="flex items-center space-x-3 py-1">
+                                            <RadioGroupItem value={opt} id={`t1sq2-${opt}`} />
+                                            <Label htmlFor={`t1sq2-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.q2 && <p className="text-sm text-red-500">{fieldErrors.q2}</p>}
+                            </div>
+
+                            {/* Q3: Audio recognition */}
+                            <div className="space-y-3" data-field-error={!!fieldErrors.q3 || undefined}>
+                                <Label className="text-lg">Which instrument can you hear in the audio example? *</Label>
+                                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                <audio controls className="w-full">
+                                    <source src="/screener/audio.mp3" type="audio/mpeg" />
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <RadioGroup
+                                    value={screenerAnswers.q3 || ''}
+                                    onValueChange={(value) => handleScreenerChange('q3', value)}
+                                >
+                                    {['Piano', 'Drums', 'Guitar', 'Violin'].map(opt => (
+                                        <div key={opt} className="flex items-center space-x-3 py-1">
+                                            <RadioGroupItem value={opt} id={`t1sq3-${opt}`} />
+                                            <Label htmlFor={`t1sq3-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.q3 && <p className="text-sm text-red-500">{fieldErrors.q3}</p>}
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex gap-4">
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="flex-1 text-lg py-6"
+                                onClick={() => { setStep('consent'); setFieldErrors({}); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            >
+                                <ChevronLeft className="mr-2 h-5 w-5" />
+                                Back
+                            </Button>
+                            <Button
+                                size="lg"
+                                className="flex-1 text-lg py-6"
+                                onClick={handleScreenerNext}
+                            >
+                                Next
+                                <ChevronRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </CardFooter>
+                    </Card>
                 </div>
             </main>
         );
