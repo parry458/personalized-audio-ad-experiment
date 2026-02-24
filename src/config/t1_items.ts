@@ -98,10 +98,10 @@ export const T1_ITEMS: T1Config = {
             scale_label: "Attitude Toward the Ad",
             type: "semantic_differential",
             items: [
-                { item_id: "att1", prompt: "The ad is", left: "Bad", right: "Good", active: true },
-                { item_id: "att2", prompt: "The ad is", left: "Unpleasant", right: "Pleasant", active: true },
-                { item_id: "att3", prompt: "My reaction is", left: "Unfavorable", right: "Favorable", active: true },
-                { item_id: "att4", prompt: "I feel", left: "Dislike", right: "Like", active: true },
+                { item_id: "att1", prompt: "The advertisement is", left: "Bad", right: "Good", active: true },
+                { item_id: "att2", prompt: "The advertisement is", left: "Unpleasant", right: "Pleasant", active: true },
+                { item_id: "att3", prompt: "My reaction towards the advertisement is", left: "Unfavorable", right: "Favorable", active: true },
+                { item_id: "att4", prompt: "I ... the advertisement", left: "Dislike", right: "Like", active: true },
             ],
         },
         // ============================================
