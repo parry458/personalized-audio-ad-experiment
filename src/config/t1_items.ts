@@ -67,15 +67,10 @@ export const T1_ITEMS: T1Config = {
             type: "likert",
             items: [
                 { item_id: "rel1", text: "When I listened to the advertisement, I felt it is important to me.", reverse: false, active: true },
-                { item_id: "rel2", text: "When I listened to the advertisement, I felt it is meaningful to me.", reverse: false, active: true },
-                { item_id: "rel3", text: "When I listened to the advertisement, I felt it was created just for me.", reverse: false, active: true },
-                { item_id: "rel4", text: "When I listened to the advertisement, I felt it is worth remembering.", reverse: false, active: true },
                 { item_id: "rel5", text: "When I listened to the advertisement, I felt it is of value to me.", reverse: false, active: true },
                 { item_id: "rel6", text: "When I listened to the advertisement, I felt it is relevant to my needs.", reverse: false, active: true },
                 { item_id: "rel7", text: "When I listened to the advertisement, I felt it is useful to me.", reverse: false, active: true },
-                { item_id: "rel8", text: "When I listened to the advertisement, I felt it is worth paying attention to.", reverse: false, active: true },
                 { item_id: "rel9", text: "When I listened to the advertisement, I felt it is interesting to me.", reverse: false, active: true },
-                { item_id: "rel10", text: "When I listened to the advertisement, I felt it is likely to give me new ideas.", reverse: false, active: true },
             ],
         },
         // ============================================
@@ -87,12 +82,12 @@ export const T1_ITEMS: T1Config = {
             type: "likert",
             items: [
                 { item_id: "int1", text: "The advertisement was distracting.", reverse: false, active: true },
-                { item_id: "int2", text: "The advertisement was disturbing.", reverse: false, active: true },
                 { item_id: "int3", text: "The advertisement was forced.", reverse: false, active: true },
                 { item_id: "int4", text: "The advertisement was interfering.", reverse: false, active: true },
                 { item_id: "int5", text: "The advertisement was intrusive.", reverse: false, active: true },
                 { item_id: "int6", text: "The advertisement was invasive.", reverse: false, active: true },
-                { item_id: "int7", text: "The advertisement was obtrusive.", reverse: false, active: true },
+                { item_id: "int8", text: "I want to resist the advertisement.", reverse: false, active: true },
+                { item_id: "int9", text: "I want to dismiss the advertisement.", reverse: false, active: true },
             ],
         },
         // ============================================
@@ -115,11 +110,12 @@ export const T1_ITEMS: T1Config = {
         {
             scale_id: "purchase_intention",
             scale_label: "Purchase Intention",
-            type: "semantic_differential",
+            type: "likert",
             items: [
-                { item_id: "pi1", prompt: "The likelihood of purchasing this product is", left: "Very low", right: "Very high", active: true },
-                { item_id: "pi2", prompt: "The probability that I would consider buying the product is", left: "Very low", right: "Very high", active: true },
-                { item_id: "pi3", prompt: "My willingness to buy the product is", left: "Very low", right: "Very high", active: true },
+                { item_id: "pi0_click", text: "I would like to click through the audio advertisement to acquire further information.", reverse: false, active: true },
+                { item_id: "pi1", text: "The likelihood of purchasing the app FocusFlow is", reverse: false, active: true },
+                { item_id: "pi2", text: "The probability that I would consider buying the app FocusFlow is", reverse: false, active: true },
+                { item_id: "pi3", text: "My willingness to buy the app FocusFlow is", reverse: false, active: true },
             ],
         },
         // ============================================

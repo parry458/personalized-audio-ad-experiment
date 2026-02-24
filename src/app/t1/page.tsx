@@ -935,13 +935,13 @@ function T1Content() {
 
     // Compact header anchors
     const getLeftAnchor = () => {
-        if (isLikert) return 'Strongly disagree';
         if (currentScale.scale_id === 'purchase_intention') return 'Very low';
+        if (isLikert) return 'Strongly disagree';
         return '';
     };
     const getRightAnchor = () => {
-        if (isLikert) return 'Strongly agree';
         if (currentScale.scale_id === 'purchase_intention') return 'Very high';
+        if (isLikert) return 'Strongly agree';
         return '';
     };
 
