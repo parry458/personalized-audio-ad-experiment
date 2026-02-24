@@ -987,7 +987,7 @@ function T1Content() {
                             <div key={item.item_id} className={`py-2.5 ${idx < activeItems.length - 1 ? 'border-b border-gray-100' : ''}`} data-field-error={!!fieldErrors[item.item_id] || undefined}>
                                 {isCompactInline ? (
                                     <div className="flex items-center">
-                                        <p className="text-sm font-medium flex-1 min-w-0 pr-3">
+                                        <p className="text-base font-medium flex-1 min-w-0 pr-3">
                                             {isLikert
                                                 ? (item as { text: string }).text
                                                 : (item as { prompt?: string }).prompt}
@@ -1018,7 +1018,7 @@ function T1Content() {
                                 ) : (
                                     <>
                                         {(item as { prompt?: string }).prompt && (
-                                            <p className="text-sm font-medium mb-3">
+                                            <p className="text-base font-medium mb-3">
                                                 {(item as { prompt?: string }).prompt}
                                             </p>
                                         )}
