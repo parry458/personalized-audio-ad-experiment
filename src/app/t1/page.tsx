@@ -968,7 +968,7 @@ function T1Content() {
                             <div className="flex items-end pb-2 border-b border-gray-200 mb-1">
                                 <div className="flex-1 min-w-0" />
                                 <div className="flex items-end flex-shrink-0">
-                                    <span className="w-[70px] text-center text-[10px] text-muted-foreground leading-tight">
+                                    <span className="w-[70px] text-center text-xs text-gray-900 font-medium leading-tight">
                                         {getLeftAnchor()}
                                     </span>
                                     {[1, 2, 3, 4, 5, 6, 7].map(val => (
@@ -976,7 +976,7 @@ function T1Content() {
                                             {val}
                                         </span>
                                     ))}
-                                    <span className="w-[70px] text-center text-[10px] text-muted-foreground leading-tight">
+                                    <span className="w-[70px] text-center text-xs text-gray-900 font-medium leading-tight">
                                         {getRightAnchor()}
                                     </span>
                                 </div>
@@ -1023,7 +1023,7 @@ function T1Content() {
                                             </p>
                                         )}
                                         <div className="flex items-center gap-1 sm:gap-2 justify-between">
-                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
+                                            <span className="text-xs sm:text-sm text-gray-900 font-medium min-w-[50px] sm:min-w-[70px] text-center leading-tight">
                                                 {(item as { left: string }).left}
                                             </span>
                                             {[1, 2, 3, 4, 5, 6, 7].map(val => (
@@ -1047,7 +1047,7 @@ function T1Content() {
                                                     </span>
                                                 </label>
                                             ))}
-                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
+                                            <span className="text-xs sm:text-sm text-gray-900 font-medium min-w-[50px] sm:min-w-[70px] text-center leading-tight">
                                                 {(item as { right: string }).right}
                                             </span>
                                         </div>
