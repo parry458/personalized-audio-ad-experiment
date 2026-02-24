@@ -928,7 +928,7 @@ function T1Content() {
 
     return (
         <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mx-auto space-y-6">
+            <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-1">
                     <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
@@ -943,40 +943,40 @@ function T1Content() {
                             {getInstructionText()}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3 pt-2">
+                    <CardContent className="space-y-0 pt-2">
                         {/* Likert anchor header (shown once at top for likert scales) */}
                         {isLikert && (
-                            <div className="flex items-center gap-1 sm:gap-2 justify-between pb-1 border-b border-gray-100">
-                                <span className="min-w-0 flex-1" />
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                    <span className="text-xs text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
-                                        {T1_ITEMS.likert.labels["1"]}
+                            <div className="flex items-end pb-2 border-b border-gray-200 mb-1">
+                                <div className="flex-1 min-w-0" />
+                                <div className="flex items-end flex-shrink-0">
+                                    <span className="w-[70px] text-center text-[10px] text-muted-foreground leading-tight">
+                                        Strongly disagree
                                     </span>
                                     {[1, 2, 3, 4, 5, 6, 7].map(val => (
-                                        <span key={val} className="w-8 sm:w-9 text-center text-xs font-medium text-gray-500">
+                                        <span key={val} className="w-10 text-center text-xs font-medium text-gray-500">
                                             {val}
                                         </span>
                                     ))}
-                                    <span className="text-xs text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
-                                        {T1_ITEMS.likert.labels["7"]}
+                                    <span className="w-[70px] text-center text-[10px] text-muted-foreground leading-tight">
+                                        Strongly agree
                                     </span>
                                 </div>
                             </div>
                         )}
 
                         {activeItems.map((item, idx) => (
-                            <div key={item.item_id} className={`py-3 ${idx < activeItems.length - 1 ? 'border-b border-gray-50' : ''}`} data-field-error={!!fieldErrors[item.item_id] || undefined}>
+                            <div key={item.item_id} className={`py-2.5 ${idx < activeItems.length - 1 ? 'border-b border-gray-100' : ''}`} data-field-error={!!fieldErrors[item.item_id] || undefined}>
                                 {isLikert ? (
-                                    <div className="flex items-center gap-1 sm:gap-2">
-                                        <p className="text-sm font-medium min-w-0 flex-1 pr-2">
+                                    <div className="flex items-center">
+                                        <p className="text-sm font-medium flex-1 min-w-0 pr-3">
                                             {(item as { text: string }).text}
                                         </p>
-                                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                                            <span className="min-w-[50px] sm:min-w-[70px]" />
+                                        <div className="flex items-center flex-shrink-0">
+                                            <span className="w-[70px]" />
                                             {[1, 2, 3, 4, 5, 6, 7].map(val => (
                                                 <label
                                                     key={val}
-                                                    className="flex items-center justify-center w-8 sm:w-9 cursor-pointer"
+                                                    className="flex items-center justify-center w-10 cursor-pointer"
                                                 >
                                                     <input
                                                         type="radio"
@@ -991,7 +991,7 @@ function T1Content() {
                                                     </span>
                                                 </label>
                                             ))}
-                                            <span className="min-w-[50px] sm:min-w-[70px]" />
+                                            <span className="w-[70px]" />
                                         </div>
                                     </div>
                                 ) : (
