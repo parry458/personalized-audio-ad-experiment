@@ -30,7 +30,7 @@ interface AudioResponse {
     already_completed_t1?: boolean;
 }
 
-type Step = 'loading' | 'consent' | 'screener' | 'screen_failed' | 'audio_instructions' | 'audio' | 'survey' | 'submitting' | 'complete' | 'error' | 'already_completed';
+type Step = 'loading' | 'consent' | 'screener' | 'screen_failed' | 'audio_instructions' | 'audio' | 'survey' | 'podcast_frequency' | 'submitting' | 'complete' | 'error' | 'already_completed';
 
 // ============================================
 // PROGRESS INDICATOR (same style as T0)
@@ -84,12 +84,15 @@ function T1Content() {
     const [audioProgress, setAudioProgress] = useState(0);
     const [audioDuration, setAudioDuration] = useState(0);
 
+    // Podcast frequency state
+    const [podcastFrequency, setPodcastFrequency] = useState<string>('');
+
     // Get active scales (only those with at least one active item)
     const activeScales = T1_ITEMS.scales.filter(scale =>
         scale.items.some(item => item.active)
     );
 
-    const totalSteps = activeScales.length + 1; // +1 for audio step
+    const totalSteps = activeScales.length + 2; // +1 for audio step, +1 for podcast frequency
 
     // Fetch audio on mount
     useEffect(() => {
@@ -302,7 +305,10 @@ function T1Content() {
                 setCurrentScaleIndex(prev => prev + 1);
                 window.scrollTo(0, 0);
             } else {
-                await handleSubmit();
+                // Go to podcast frequency step instead of submitting directly
+                setStep('podcast_frequency');
+                setFieldErrors({});
+                window.scrollTo(0, 0);
             }
         }
     };
@@ -319,6 +325,7 @@ function T1Content() {
                     prolific_pid: prolificPid,
                     response_payload: {
                         answers,
+                        podcast_frequency: podcastFrequency,
                         completed_at: new Date().toISOString(),
                         duration_seconds: Math.round((Date.now() - startTimeRef.current) / 1000),
                     },
@@ -756,10 +763,10 @@ function T1Content() {
                                     onClick={handlePlayAudio}
                                     disabled={audioPlaying || audioFinished}
                                     className={`w-[70px] h-[70px] rounded-full flex items-center justify-center transition-all shadow-lg ${audioFinished
-                                            ? 'bg-gray-300 cursor-not-allowed'
-                                            : audioPlaying
-                                                ? 'bg-blue-400 cursor-not-allowed'
-                                                : 'bg-blue-600 hover:bg-blue-700 cursor-pointer hover:shadow-xl hover:scale-105'
+                                        ? 'bg-gray-300 cursor-not-allowed'
+                                        : audioPlaying
+                                            ? 'bg-blue-400 cursor-not-allowed'
+                                            : 'bg-blue-600 hover:bg-blue-700 cursor-pointer hover:shadow-xl hover:scale-105'
                                         }`}
                                     aria-label={audioFinished ? 'Playback complete' : audioPlaying ? 'Playing' : 'Play audio'}
                                 >
@@ -812,13 +819,112 @@ function T1Content() {
     }
 
     // ============================================
-    // RENDER: SURVEY STEPS
+    // RENDER: PODCAST FREQUENCY (Step 7)
+    // ============================================
+
+    if (step === 'podcast_frequency') {
+        const podcastOptions = [
+            'Never',
+            'About once a year',
+            'Twice a month or less',
+            'Once a week',
+            'Twice a week',
+            'Daily',
+            'Several times a day',
+        ];
+
+        const handlePodcastSubmit = async () => {
+            if (!podcastFrequency) {
+                setFieldErrors({ podcast_frequency: 'Please answer this question before continuing.' });
+                scrollToFirstError();
+                return;
+            }
+            setFieldErrors({});
+            await handleSubmit();
+        };
+
+        return (
+            <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="text-center space-y-1">
+                        <h1 className="text-3xl font-semibold text-gray-900">Study Part 2</h1>
+                        <p className="text-base text-muted-foreground">Audio exposure &amp; survey</p>
+                    </div>
+
+                    <StepIndicator current={totalSteps} total={totalSteps} />
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardDescription className="text-base">
+                                Please answer the following question.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-2">
+                            <div data-field-error={!!fieldErrors.podcast_frequency || undefined}>
+                                <p className="text-base font-medium mb-3">
+                                    How often do you listen to podcasts?
+                                </p>
+                                <RadioGroup
+                                    value={podcastFrequency}
+                                    onValueChange={(value) => {
+                                        setPodcastFrequency(value);
+                                        setFieldErrors(prev => {
+                                            if (!prev.podcast_frequency) return prev;
+                                            const next = { ...prev };
+                                            delete next.podcast_frequency;
+                                            return next;
+                                        });
+                                    }}
+                                    className="space-y-2"
+                                >
+                                    {podcastOptions.map((option) => (
+                                        <div key={option} className="flex items-center space-x-3">
+                                            <RadioGroupItem value={option} id={`podcast-${option}`} />
+                                            <Label htmlFor={`podcast-${option}`} className="text-base cursor-pointer">
+                                                {option}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                {fieldErrors.podcast_frequency && (
+                                    <p className="text-sm text-red-500 mt-2">{fieldErrors.podcast_frequency}</p>
+                                )}
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                size="lg"
+                                className="w-full text-lg py-6"
+                                onClick={handlePodcastSubmit}
+                            >
+                                Submit
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: SURVEY STEPS (compact layout)
     // ============================================
 
     const currentScale = activeScales[currentScaleIndex];
     const activeItems = currentScale.items.filter(item => item.active);
     const isLikert = currentScale.type === 'likert';
     const isLastScale = currentScaleIndex >= activeScales.length - 1;
+
+    // Per-scale instruction text
+    const getInstructionText = () => {
+        if (currentScale.scale_id === 'relevance' || currentScale.scale_id === 'intrusiveness') {
+            return 'Please indicate how much you agree with the following statements based on the audio track you just listened to.';
+        }
+        if (isLikert) {
+            return 'Please indicate how much you agree with the following statements.';
+        }
+        return 'Please rate on the following scales.';
+    };
 
     return (
         <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
@@ -832,30 +938,45 @@ function T1Content() {
                 <StepIndicator current={currentScaleIndex + 2} total={totalSteps} />
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-2xl">{currentScale.scale_label}</CardTitle>
+                    <CardHeader className="pb-2">
                         <CardDescription className="text-base">
-                            {isLikert
-                                ? 'Please indicate how much you agree with the following statements.'
-                                : 'Please rate on the following scales.'}
+                            {getInstructionText()}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        {activeItems.map((item) => (
-                            <div key={item.item_id} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0" data-field-error={!!fieldErrors[item.item_id] || undefined}>
+                    <CardContent className="space-y-3 pt-2">
+                        {/* Likert anchor header (shown once at top for likert scales) */}
+                        {isLikert && (
+                            <div className="flex items-center gap-1 sm:gap-2 justify-between pb-1 border-b border-gray-100">
+                                <span className="min-w-0 flex-1" />
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <span className="text-xs text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
+                                        {T1_ITEMS.likert.labels["1"]}
+                                    </span>
+                                    {[1, 2, 3, 4, 5, 6, 7].map(val => (
+                                        <span key={val} className="w-8 sm:w-9 text-center text-xs font-medium text-gray-500">
+                                            {val}
+                                        </span>
+                                    ))}
+                                    <span className="text-xs text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
+                                        {T1_ITEMS.likert.labels["7"]}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeItems.map((item, idx) => (
+                            <div key={item.item_id} className={`py-3 ${idx < activeItems.length - 1 ? 'border-b border-gray-50' : ''}`} data-field-error={!!fieldErrors[item.item_id] || undefined}>
                                 {isLikert ? (
-                                    <>
-                                        <p className="text-base font-medium mb-4">
+                                    <div className="flex items-center gap-1 sm:gap-2">
+                                        <p className="text-sm font-medium min-w-0 flex-1 pr-2">
                                             {(item as { text: string }).text}
                                         </p>
-                                        <div className="flex items-center gap-1 sm:gap-2 justify-between">
-                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
-                                                {T1_ITEMS.likert.labels["1"]}
-                                            </span>
+                                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                                            <span className="min-w-[50px] sm:min-w-[70px]" />
                                             {[1, 2, 3, 4, 5, 6, 7].map(val => (
                                                 <label
                                                     key={val}
-                                                    className={`flex flex-col items-center gap-1.5 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-100 ring-1 ring-gray-200'}`}
+                                                    className="flex items-center justify-center w-8 sm:w-9 cursor-pointer"
                                                 >
                                                     <input
                                                         type="radio"
@@ -865,34 +986,29 @@ function T1Content() {
                                                         onChange={() => handleAnswerChange(item.item_id, val)}
                                                         className="sr-only"
                                                     />
-                                                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${answers[item.item_id] === val ? 'border-blue-600 bg-blue-600' : 'border-gray-400 bg-white'}`}>
-                                                        {answers[item.item_id] === val && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                    </span>
-                                                    <span className={`text-sm font-medium ${answers[item.item_id] === val ? 'text-blue-700' : 'text-gray-600'}`}>
-                                                        {val}
+                                                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${answers[item.item_id] === val ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white hover:border-gray-400'}`}>
+                                                        {answers[item.item_id] === val && <span className="w-2 h-2 rounded-full bg-white" />}
                                                     </span>
                                                 </label>
                                             ))}
-                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
-                                                {T1_ITEMS.likert.labels["7"]}
-                                            </span>
+                                            <span className="min-w-[50px] sm:min-w-[70px]" />
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
                                     <>
                                         {(item as { prompt?: string }).prompt && (
-                                            <p className="text-base font-medium mb-4">
+                                            <p className="text-sm font-medium mb-3">
                                                 {(item as { prompt?: string }).prompt}
                                             </p>
                                         )}
                                         <div className="flex items-center gap-1 sm:gap-2 justify-between">
-                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
+                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
                                                 {(item as { left: string }).left}
                                             </span>
                                             {[1, 2, 3, 4, 5, 6, 7].map(val => (
                                                 <label
                                                     key={val}
-                                                    className={`flex flex-col items-center gap-1.5 cursor-pointer px-1 sm:px-2 py-2 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-100 ring-1 ring-gray-200'}`}
+                                                    className={`flex flex-col items-center gap-1 cursor-pointer px-1 sm:px-2 py-1.5 rounded-lg transition-colors ${answers[item.item_id] === val ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-gray-100 ring-1 ring-gray-200'}`}
                                                 >
                                                     <input
                                                         type="radio"
@@ -910,14 +1026,14 @@ function T1Content() {
                                                     </span>
                                                 </label>
                                             ))}
-                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center leading-tight">
+                                            <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[70px] text-center leading-tight">
                                                 {(item as { right: string }).right}
                                             </span>
                                         </div>
                                     </>
                                 )}
                                 {fieldErrors[item.item_id] && (
-                                    <p className="text-sm text-red-500 mt-2">{fieldErrors[item.item_id]}</p>
+                                    <p className="text-sm text-red-500 mt-1">{fieldErrors[item.item_id]}</p>
                                 )}
                             </div>
                         ))}
@@ -928,14 +1044,16 @@ function T1Content() {
                             className="w-full text-lg py-6"
                             onClick={handleContinue}
                         >
-                            {isLastScale ? 'Submit' : 'Continue'}
-                            {!isLastScale && <ChevronRight className="ml-2 h-5 w-5" />}
+                            Continue
+                            <ChevronRight className="ml-2 h-5 w-5" />
                         </Button>
                     </CardFooter>
                 </Card>
             </div>
         </main>
     );
+
+    // NOTE: podcast_frequency step is handled above before the survey render
 }
 
 // ============================================

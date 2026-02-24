@@ -40,12 +40,14 @@ export async function POST(request: NextRequest) {
         // STEP 3: Atomic update — only if t1_completed_at IS NULL
         // ============================================
         const durationSeconds = (body.response_payload as Record<string, unknown>)?.duration_seconds ?? null;
+        const podcastFrequency = (body.response_payload as Record<string, unknown>)?.podcast_frequency ?? null;
 
         const { data: updated, error: updateError } = await supabaseAdmin
             .from('participants')
             .update({
                 t1_completed_at: timestamp,
                 t1_duration_seconds: durationSeconds,
+                podcast_frequency_t1: podcastFrequency,
             })
             .eq('prolific_pid', body.prolific_pid)
             .is('t1_completed_at', null)
