@@ -325,7 +325,7 @@ function T0Content() {
                         <Button
                             variant="outline"
                             size="lg"
-                            className="w-full text-base py-5"
+                            className="w-full text-base py-5 h-auto whitespace-normal"
                             onClick={() => {
                                 setShowOtherConfirm(false);
                                 // Keep form state, just return to step 1
@@ -337,7 +337,7 @@ function T0Content() {
                         <Button
                             variant="destructive"
                             size="lg"
-                            className="w-full text-base py-5"
+                            className="w-full text-base py-5 h-auto whitespace-normal"
                             onClick={() => {
                                 setScreenedOut(true);
                             }}
