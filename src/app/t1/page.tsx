@@ -520,7 +520,7 @@ function T1Content() {
                     <Card>
                         <CardContent className="space-y-4 pt-6 text-base leading-relaxed">
                             <p>
-                                You are now taking part in part 2 of the study you started approximately one week ago.<br />
+                                You are now taking part in Part 2 of the study you started earlier in this session.<br />
                                 Part two will take ca. 3 minutes.
                             </p>
 

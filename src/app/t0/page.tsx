@@ -479,7 +479,7 @@ function T0Content() {
                     </CardHeader>
                     <CardContent className="space-y-4 text-green-800">
                         <p><strong>Part 1 Complete</strong></p>
-                        <p>We'll invite you back for Part 2 in 7 days via Prolific messaging.</p>
+                        <p>We'll invite you back for Part 2 within 1-2 hours via Prolific messaging.</p>
                         <p>You may now close this tab.</p>
                     </CardContent>
                 </Card>
@@ -534,7 +534,7 @@ function T0Content() {
                             <p>You are invited to participate in a research study about how people perceive audio content in digital environments. Before deciding whether to participate, please read the following information.</p>
 
                             <p><strong>What you will do in the study:</strong><br />
-                                The study consists of two parts. In Part 1, you will answer a few short survey questions. In Part 2, which will take place exactly 7 days later, you will listen to an audio recording and answer follow-up questions. You will be notified about Part 2 in advance.</p>
+                                The study consists of two parts. Part 1 consists of answering several survey questions. Part 2 will take place within 1-2 hours after completing Part 1. You will be notified once Part 2 is ready to be taken. In Part 2, you will listen to an audio recording and answer follow-up questions.</p>
 
                             <p><strong>Time required:</strong><br />
                                 Part 1 will take approximately 1–2 minutes. Part 2 will take approximately 3 minutes.</p>
