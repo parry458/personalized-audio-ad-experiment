@@ -489,13 +489,10 @@ function T0Content() {
                             <CardTitle className="text-2xl">Informed Consent</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-base leading-relaxed">
-                            <p>Please read this consent agreement carefully before deciding whether to participate in this study.</p>
-
-                            <p><strong>Purpose of the research study:</strong><br />
-                                The purpose of this study is to investigate how people perceive and evaluate audio content in a digital environment.</p>
+                            <p>You are invited to participate in a research study about how people perceive audio content in digital environments. Before deciding whether to participate, please read the following information.</p>
 
                             <p><strong>What you will do in the study:</strong><br />
-                                This study consists of two parts. In Part 1, you will answer survey questions. In Part 2, you will listen to an audio recording and answer follow-up questions. Part 2 will take place 7 days after submitting Part 1.</p>
+                                The study consists of two parts. In Part 1, you will answer a few short survey questions. In Part 2, which will take place exactly 7 days later, you will listen to an audio recording and answer follow-up questions. You will be notified about Part 2 in advance.</p>
 
                             <p><strong>Time required:</strong><br />
                                 Part 1 will take approximately 1–2 minutes. Part 2 will take approximately 3 minutes.</p>
@@ -504,10 +501,10 @@ function T0Content() {
                                 There are no anticipated risks associated with participating in this study.</p>
 
                             <p><strong>Benefits:</strong><br />
-                                There are no direct benefits to you for participating in this research study. The findings may help researchers better understand how people behave. We hope that, in the future, other people might benefit from this study.</p>
+                                There are no direct benefits to you for participating in this research study. The findings may help researchers better understand how people behave.</p>
 
                             <p><strong>Confidentiality:</strong><br />
-                                Your data will be anonymous, meaning your name will not be collected or linked to it. The data collected by investigators will not be linked to your identity. Researchers will not ascertain identities based on demographic information. If we write a report or article about this research project, your identity will be protected to the maximum extent possible. In addition, we will not maintain any identifiable information about you after you get paid. All data will be deleted upon completion of the study.</p>
+                                Your data will be anonymous, meaning your name will not be collected or linked to it and the data collected will not be linked to your identity. Researchers will not ascertain identities based on demographic information. If we write a report or article about this research project, your identity will be protected to the maximum extent possible. In addition, we will not maintain any identifiable information and delete all data about you after you get paid.</p>
 
                             <p><strong>Voluntary participation:</strong><br />
                                 Your participation in this study is completely voluntary.</p>
@@ -516,10 +513,10 @@ function T0Content() {
                                 You have the right to withdraw from the study at any time without penalty. If you decide not to participate or to stop participating, you will not lose any benefits to which you are otherwise entitled.</p>
 
                             <p><strong>How to withdraw from the study:</strong><br />
-                                If you wish to withdraw before completing the study, you may simply close the survey window. Your responses will not be recorded if you withdraw before submitting them. Because the study is anonymous, it is not possible to remove your data after submission. You will still receive full payment in accordance with Prolific&apos;s policies.</p>
+                                If you wish to withdraw before completing the study, you may simply close the survey window. Your responses will not be recorded if you withdraw before submitting them. You will still receive full payment in accordance with Prolific&apos;s policies.</p>
 
                             <p><strong>Payment:</strong><br />
-                                You will receive payment as specified on Prolific for completing the full study. You will only receive the payment if you complete both parts of the study.</p>
+                                You will receive payment as specified on Prolific for completing the two parts of the study. The payment for Part 2 will be higher than for Part 1.</p>
 
                             <p><strong>Contact information:</strong><br />
                                 If you have questions about this study, please contact:<br />
