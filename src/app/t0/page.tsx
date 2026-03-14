@@ -377,7 +377,6 @@ function T0Content() {
         );
     }
 
-    // ─── Render: Screener Failed (permanent) ────────────────────
     // ─── Render: Consent Declined ────────────────────────────────
     if (consentDeclined) {
         return (

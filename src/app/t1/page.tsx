@@ -30,7 +30,7 @@ interface AudioResponse {
     already_completed_t1?: boolean;
 }
 
-type Step = 'loading' | 'consent' | 'screener' | 'screen_failed' | 'audio_instructions' | 'audio' | 'survey' | 'podcast_frequency' | 'submitting' | 'complete' | 'error' | 'already_completed';
+type Step = 'loading' | 'consent' | 'consent_declined' | 'screener' | 'screen_failed' | 'audio_instructions' | 'audio' | 'survey' | 'podcast_frequency' | 'submitting' | 'complete' | 'error' | 'already_completed';
 
 // ============================================
 // PROGRESS INDICATOR (same style as T0)
@@ -76,7 +76,6 @@ function T1Content() {
 
     // Consent + Screener state
     const [consentAnswer, setConsentAnswer] = useState<string>('');
-    const [consentDeclined, setConsentDeclined] = useState(false);
     const [screenerAnswers, setScreenerAnswers] = useState<Record<string, string>>({});
 
     // Custom audio player state
@@ -572,7 +571,7 @@ function T1Content() {
                                         setStep('screener');
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                     } else if (consentAnswer === 'No') {
-                                        setConsentDeclined(true);
+                                        setStep('consent_declined');
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                     }
                                 }}
@@ -592,7 +591,7 @@ function T1Content() {
     // RENDER: CONSENT DECLINED
     // ============================================
 
-    if (consentDeclined) {
+    if (step === 'consent_declined') {
         return (
             <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
                 <Card className="w-full max-w-lg">
@@ -609,7 +608,7 @@ function T1Content() {
                             variant="outline"
                             size="lg"
                             className="flex-1 text-base py-5"
-                            onClick={() => { setConsentDeclined(false); setConsentAnswer(''); setStep('consent'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            onClick={() => { setConsentAnswer(''); setStep('consent'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                         >
                             <ChevronLeft className="mr-2 h-5 w-5" />
                             Go back to consent
