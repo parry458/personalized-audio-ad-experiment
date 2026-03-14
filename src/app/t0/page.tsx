@@ -294,7 +294,7 @@ function T0Content() {
 
             if (!response.ok && !data.ok) throw new Error(data.error || 'Failed to submit data');
             setSubmitted(true);
-            window.location.href = 'https://app.prolific.com/submissions/complete?cc=CADFMHWR';
+            window.location.href = 'https://app.prolific.com/submissions/complete?cc=C1KZESCO';
         } catch (err: any) {
             setFieldErrors({ _submit: err.message || 'Something went wrong' });
         } finally {
