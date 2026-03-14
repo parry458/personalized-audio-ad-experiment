@@ -294,9 +294,7 @@ function T0Content() {
 
             if (!response.ok && !data.ok) throw new Error(data.error || 'Failed to submit data');
             setSubmitted(true);
-            setTimeout(() => {
-                window.location.href = 'https://app.prolific.com/submissions/complete?cc=CADFMHWR';
-            }, 1500);
+            window.location.href = 'https://app.prolific.com/submissions/complete?cc=CADFMHWR';
         } catch (err: any) {
             setFieldErrors({ _submit: err.message || 'Something went wrong' });
         } finally {
@@ -460,29 +458,6 @@ function T0Content() {
                         <p>You have already completed Part 1 of this study.</p>
                         <p>We&apos;ll invite you back for Part 2 via Prolific messaging.</p>
                         <p>You may now close this tab. Thank you!</p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    // ─── Render: Submitted ───────────────────────────────────────
-    if (submitted) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                <Card className="w-full max-w-lg border-green-200 bg-green-50/50">
-                    <CardHeader>
-                        <CardTitle className="text-green-700 flex items-center gap-2">
-                            <CheckCircle2 className="h-6 w-6" />
-                            Success
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4 text-green-800">
-                        <p className="text-lg">Your responses have been submitted.</p>
-                        <p className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Redirecting you back to Prolific...
-                        </p>
                     </CardContent>
                 </Card>
             </div>
