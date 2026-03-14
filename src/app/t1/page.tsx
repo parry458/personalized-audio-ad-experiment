@@ -609,7 +609,7 @@ function T1Content() {
                         <Button
                             size="lg"
                             className="flex-1 text-base py-5"
-                            onClick={() => window.location.href = 'https://app.prolific.com/submissions/complete?cc=RETURN'}
+                            onClick={() => window.location.href = 'https://app.prolific.com'}
                         >
                             Return to Prolific
                             <ChevronRight className="ml-2 h-5 w-5" />
