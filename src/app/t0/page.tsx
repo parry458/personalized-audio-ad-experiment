@@ -430,8 +430,16 @@ function T0Content() {
                             Unfortunately, you do not meet the criteria for this study.
                         </p>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="flex flex-col gap-3">
                         <p className="text-sm text-muted-foreground">Please return the submission on Prolific.</p>
+                        <Button
+                            size="lg"
+                            className="w-full text-base py-5"
+                            onClick={() => window.location.href = 'https://app.prolific.com'}
+                        >
+                            Return to Prolific
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
                     </CardFooter>
                 </Card>
             </div>
