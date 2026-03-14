@@ -38,6 +38,12 @@ export default function AdminQCPage() {
     const [error, setError] = useState<string | null>(null);
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    const showToast = (msg: string) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 3000);
+    };
 
 
     // Fetch participants needing QC
@@ -72,7 +78,8 @@ export default function AdminQCPage() {
             });
             const data = await res.json();
             if (data.ok) {
-                await fetchParticipants();
+                setParticipants(prev => prev.filter(p => p.prolific_pid !== pid));
+                showToast(`Audio approved for ${pid}`);
             } else {
                 alert('Error: ' + data.error);
             }
@@ -93,7 +100,8 @@ export default function AdminQCPage() {
             });
             const data = await res.json();
             if (data.ok) {
-                await fetchParticipants();
+                setParticipants(prev => prev.filter(p => p.prolific_pid !== pid));
+                showToast(`Marked needs fix for ${pid}`);
             } else {
                 alert('Error: ' + data.error);
             }
@@ -118,7 +126,8 @@ export default function AdminQCPage() {
             });
             const data = await res.json();
             if (data.ok) {
-                await fetchParticipants();
+                setParticipants(prev => prev.filter(p => p.prolific_pid !== pid));
+                showToast(`Audio replaced for ${pid}`);
             } else {
                 alert('Error: ' + data.error);
             }
@@ -256,11 +265,31 @@ export default function AdminQCPage() {
             <button onClick={fetchParticipants} style={styles.refreshBtn}>
                 🔄 Refresh
             </button>
+
+            {/* Simple Toast Notification */}
+            {toastMessage && (
+                <div style={styles.toast}>
+                    {toastMessage}
+                </div>
+            )}
         </main>
     );
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
+    toast: {
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        backgroundColor: '#4caf50',
+        color: 'white',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        zIndex: 1000,
+        fontWeight: 500,
+        animation: 'fadeIn 0.3s ease-in-out',
+    },
     main: {
         padding: '40px 20px',
         maxWidth: '900px',
