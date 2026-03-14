@@ -521,16 +521,22 @@ function T1Content() {
                         <CardContent className="space-y-4 pt-6 text-base leading-relaxed">
                             <p>
                                 You are now taking part in part 2 of the study you started approximately one week ago.<br />
-                                Part two will take ca. 3 minutes.<br />
+                                Part two will take ca. 3 minutes.
+                            </p>
+
+                            <p>
+                                <strong>Audio Listening Requirement</strong><br />
                                 For Part 2, you will need to be able to play audio on your device, ideally using headphones or earphones.
                             </p>
 
                             <p>
-                                After submitting Part 2 you are eligible for the payment as specified on Prolific for completing the full study.
+                                <strong>Payment</strong><br />
+                                After submitting Part 2 you are eligible for the payment as specified on Prolific for completing the second part.
                             </p>
 
                             <p>
-                                If you wish to withdraw before completing the study, you may simply close the survey window. Your responses will not be recorded if you withdraw before submitting them. Because the study is anonymous, it is not possible to remove your data after submission. You will still receive full payment in accordance with Prolific&apos;s policies.
+                                <strong>Withdrawal</strong><br />
+                                If you wish to withdraw before completing the study, you may simply close the survey window. Your responses will not be recorded if you withdraw before submitting them.
                             </p>
 
                             <p>
