@@ -562,9 +562,9 @@ function T0Content() {
 
                             <p><strong>Contact information:</strong><br />
                                 If you have questions about this study, please contact:<br />
-                                [Your Name]<br />
-                                [Your University]<br />
-                                [Your Email Address]</p>
+                                Christoph Rapp<br />
+                                Technical University of Munich<br />
+                                c.rapp@tum.de</p>
 
                             <hr className="my-4" />
 
