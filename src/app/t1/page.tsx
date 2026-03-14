@@ -986,6 +986,9 @@ function T1Content() {
 
     // Per-scale instruction text
     const getInstructionText = () => {
+        if ('instruction' in currentScale && currentScale.instruction) {
+            return currentScale.instruction;
+        }
         if (currentScale.scale_id === 'relevance' || currentScale.scale_id === 'intrusiveness') {
             return 'Please indicate how much you agree with the following statements based on the audio track you just listened to.';
         }

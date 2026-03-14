@@ -25,6 +25,7 @@ export interface SemanticDifferentialItem {
 export interface LikertScale {
     scale_id: string;
     scale_label: string;
+    instruction?: string;
     type: 'likert';
     items: LikertItem[];
 }
@@ -58,6 +59,20 @@ export const T1_ITEMS: T1Config = {
         },
     },
     scales: [
+        // ============================================
+        // SCALE 1: Perceived Personalization
+        // ============================================
+        {
+            scale_id: "perceived_personalization",
+            scale_label: "Perceived Personalization",
+            instruction: "Please indicate how much you agree with the following statements based on the audio track you just listened to.",
+            type: "likert",
+            items: [
+                { item_id: "pers_tailored", text: "This ad is tailored to my situation.", reverse: false, active: true },
+                { item_id: "pers_customized", text: "I believe this ad is customized to my needs.", reverse: false, active: true },
+                { item_id: "pers_targeted", text: "This ad was targeted at me as a unique individual.", reverse: false, active: true },
+            ],
+        },
         // ============================================
         // SCALE 1: Perceived Ad Relevance
         // ============================================
