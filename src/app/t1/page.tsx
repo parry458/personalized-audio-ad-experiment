@@ -76,6 +76,7 @@ function T1Content() {
 
     // Consent + Screener state
     const [consentAnswer, setConsentAnswer] = useState<string>('');
+    const [consentDeclined, setConsentDeclined] = useState(false);
     const [screenerAnswers, setScreenerAnswers] = useState<Record<string, string>>({});
 
     // Custom audio player state
@@ -558,8 +559,16 @@ function T1Content() {
                             <Button
                                 size="lg"
                                 className="w-full text-lg py-6"
-                                onClick={() => { setStep('screener'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                disabled={consentAnswer !== 'Yes'}
+                                onClick={() => {
+                                    if (consentAnswer === 'Yes') {
+                                        setStep('screener');
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    } else if (consentAnswer === 'No') {
+                                        setConsentDeclined(true);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }
+                                }}
+                                disabled={!consentAnswer}
                             >
                                 Continue
                                 <ChevronRight className="ml-2 h-5 w-5" />
@@ -567,6 +576,46 @@ function T1Content() {
                         </CardFooter>
                     </Card>
                 </div>
+            </main>
+        );
+    }
+
+    // ============================================
+    // RENDER: CONSENT DECLINED
+    // ============================================
+
+    if (consentDeclined) {
+        return (
+            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg">
+                    <CardHeader>
+                        <CardTitle className="text-xl">You have chosen not to participate</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-base text-muted-foreground leading-relaxed">
+                        <p>You have chosen not to participate in this study.</p>
+                        <p>If you do not wish to participate, please return your submission on Prolific.</p>
+                        <p>If you selected &apos;No&apos; by mistake, you can go back and review the consent agreement again.</p>
+                    </CardContent>
+                    <CardFooter className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1 text-base py-5"
+                            onClick={() => { setConsentDeclined(false); setConsentAnswer(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        >
+                            <ChevronLeft className="mr-2 h-5 w-5" />
+                            Go back to consent
+                        </Button>
+                        <Button
+                            size="lg"
+                            className="flex-1 text-base py-5"
+                            onClick={() => window.location.href = 'https://app.prolific.com/submissions/complete?cc=RETURN'}
+                        >
+                            Return to Prolific
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
+                    </CardFooter>
+                </Card>
             </main>
         );
     }
