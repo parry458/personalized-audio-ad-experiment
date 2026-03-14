@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 
 // ─── Progress Indicator ──────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: number; total: number }) {
@@ -294,6 +294,9 @@ function T0Content() {
 
             if (!response.ok && !data.ok) throw new Error(data.error || 'Failed to submit data');
             setSubmitted(true);
+            setTimeout(() => {
+                window.location.href = 'https://app.prolific.com/submissions/complete?cc=CADFMHWR';
+            }, 500);
         } catch (err: any) {
             setFieldErrors({ _submit: err.message || 'Something went wrong' });
         } finally {
@@ -471,16 +474,15 @@ function T0Content() {
                     <CardHeader>
                         <CardTitle className="text-green-700 flex items-center gap-2">
                             <CheckCircle2 className="h-6 w-6" />
-                            Thank You!
+                            Success
                         </CardTitle>
-                        <CardDescription className="text-green-600">
-                            Your responses have been saved.
-                        </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 text-green-800">
-                        <p><strong>Part 1 Complete</strong></p>
-                        <p>We'll invite you back for Part 2 within 1-2 hours via Prolific messaging.</p>
-                        <p>You may now close this tab.</p>
+                        <p className="text-lg">Your responses have been submitted.</p>
+                        <p className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Redirecting you back to Prolific...
+                        </p>
                     </CardContent>
                 </Card>
             </div>
