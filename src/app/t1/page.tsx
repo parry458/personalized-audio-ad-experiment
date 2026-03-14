@@ -756,10 +756,10 @@ function T1Content() {
                                 In the next step, you will be presented with an audio recording. The recording is an excerpt from a podcast and includes an advertising segment.
                             </p>
                             <p>
-                                You will be able to listen to the entire audio file by clicking the play button. The recording can only be played once. Please listen carefully to the full audio.
+                                The recording can only be played once after clicking the play button. Please listen carefully to the full audio.
                             </p>
                             <p>
-                                After the audio has finished playing, you will be able to proceed to the next step.
+                                After listening, you will be able to proceed to the next step.
                             </p>
                         </CardContent>
                         <CardFooter>
