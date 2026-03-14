@@ -118,24 +118,27 @@ function T0Content() {
     const countries = ['UK', 'USA', 'Other'];
 
     const pastCategories = [
-        'Social media scrolling',
-        'Streaming videos/TV',
-        'Online shopping / browsing products',
-        'Gaming',
-        'Sports content',
-        'Dating apps / messaging',
-        'Other'
+        'Scrolling through social media',
+        'Watching videos, TV, or streaming content online',
+        'Browsing products or shopping online',
+        'Playing video games',
+        'Watching sports highlights or sports videos',
+        'Using dating apps',
+        'Chatting online with friends or family',
+        'Reading news or informational content',
+        'Listening to music or other audio content'
     ];
 
     const goalCategories = [
-        'Getting organized / planning my week',
-        'Studying / learning / exams',
-        'Work productivity / getting tasks done',
-        'Health routine (sleep, exercise, habits)',
-        'Personal project / creative work',
-        'Job search / applications / career planning',
-        'Home/admin tasks (finances, paperwork, chores)',
-        'Other'
+        'Getting better organized or planning my tasks',
+        'Studying or learning something new',
+        'Getting important work tasks done',
+        'Building a healthier routine (sleep, exercise, habits)',
+        'Working on a personal project',
+        'Searching for new job opportunities or career options',
+        'Taking care of personal or administrative tasks',
+        'Improving my relationships or social life',
+        'Improving my financial situation'
     ];
 
     // ─── Handlers ────────────────────────────────────────────────
@@ -179,13 +182,9 @@ function T0Content() {
         }
         if (s === 3) {
             if (!formData.past_category) errors.past_category = msg;
-            if (formData.past_category === 'Other' && !formData.past_category_other.trim())
-                errors.past_category_other = 'Please specify your answer.';
         }
         if (s === 4) {
             if (!formData.goal_category) errors.goal_category = msg;
-            if (formData.goal_category === 'Other' && !formData.goal_category_other.trim())
-                errors.goal_category_other = 'Please specify your answer.';
         }
         return errors;
     };
@@ -753,18 +752,6 @@ function T0Content() {
                                     ))}
                                 </RadioGroup>
                                 {fieldErrors.past_category && <p className="text-sm text-red-500">{fieldErrors.past_category}</p>}
-                                {formData.past_category === 'Other' && (
-                                    <>
-                                        <Input
-                                            className={`mt-2 py-3 px-4 text-base ${fieldErrors.past_category_other ? 'border-red-500 ring-red-500' : ''}`}
-                                            type="text"
-                                            placeholder="Please specify..."
-                                            value={formData.past_category_other}
-                                            onChange={(e) => handleChange('past_category_other', e.target.value)}
-                                        />
-                                        {fieldErrors.past_category_other && <p className="text-sm text-red-500">{fieldErrors.past_category_other}</p>}
-                                    </>
-                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -790,18 +777,6 @@ function T0Content() {
                                     ))}
                                 </RadioGroup>
                                 {fieldErrors.goal_category && <p className="text-sm text-red-500">{fieldErrors.goal_category}</p>}
-                                {formData.goal_category === 'Other' && (
-                                    <>
-                                        <Input
-                                            className={`mt-2 py-3 px-4 text-base ${fieldErrors.goal_category_other ? 'border-red-500 ring-red-500' : ''}`}
-                                            type="text"
-                                            placeholder="Please specify..."
-                                            value={formData.goal_category_other}
-                                            onChange={(e) => handleChange('goal_category_other', e.target.value)}
-                                        />
-                                        {fieldErrors.goal_category_other && <p className="text-sm text-red-500">{fieldErrors.goal_category_other}</p>}
-                                    </>
-                                )}
                             </div>
                         </CardContent>
                     </Card>

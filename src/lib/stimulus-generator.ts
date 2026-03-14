@@ -8,6 +8,18 @@ import { computeAgeRange } from '@/lib/age-range';
 
 // Define mappings as requested
 const PAST_CATEGORY_MAPPING: Record<string, string> = {
+    // --- NEW FINALIZED OPTIONS ---
+    'Scrolling through social media': 'scrolling through social media',
+    'Watching videos, TV, or streaming content online': 'watching videos or streaming shows online',
+    'Browsing products or shopping online': 'browsing products or shopping online',
+    'Playing video games': 'playing video games',
+    'Watching sports highlights or sports videos': 'watching sports highlights or sports videos',
+    'Using dating apps': 'using dating apps',
+    'Chatting online with friends or family': 'chatting online with friends or family',
+    'Reading news or informational content': 'reading news or informational content online',
+    'Listening to music or other audio content': 'listening to music or audio content online',
+
+    // --- LEGACY FALLBACKS (DO NOT REMOVE) ---
     'Social media scrolling': 'social media',
     'Streaming videos/TV': 'streaming',
     'Online shopping / browsing products': 'online shopping',
@@ -18,6 +30,18 @@ const PAST_CATEGORY_MAPPING: Record<string, string> = {
 };
 
 const GOAL_CATEGORY_MAPPING: Record<string, string> = {
+    // --- NEW FINALIZED OPTIONS ---
+    'Getting better organized or planning my tasks': 'getting better organized',
+    'Studying or learning something new': 'studying or learning something new',
+    'Getting important work tasks done': 'getting important work tasks done',
+    'Building a healthier routine (sleep, exercise, habits)': 'building a healthier daily routine',
+    'Working on a personal project': 'working on a personal project',
+    'Searching for new job opportunities or career options': 'searching for new job opportunities',
+    'Taking care of personal or administrative tasks': 'taking care of personal tasks and responsibilities',
+    'Improving my relationships or social life': 'improving your relationships or social life',
+    'Improving my financial situation': 'improving your financial situation',
+
+    // --- LEGACY FALLBACKS (DO NOT REMOVE) ---
     'Getting organized / planning my week': 'getting organized',
     'Studying / learning / exams': 'studying',
     'Work productivity / getting tasks done': 'work tasks',
@@ -79,7 +103,7 @@ export function getStimulusText(participant: ParticipantData): string {
     if (!mappedPast && past_category.startsWith('Other')) {
         mappedPast = PAST_CATEGORY_MAPPING['Other'];
     }
-    // Final fallback: use lowercased value if really nothing matches (unlikely given fixed options)
+    // Final fallback: use lowercased value if really nothing matches
     if (!mappedPast) mappedPast = past_category.toLowerCase();
 
 
