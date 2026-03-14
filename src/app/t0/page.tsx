@@ -296,7 +296,7 @@ function T0Content() {
             setSubmitted(true);
             setTimeout(() => {
                 window.location.href = 'https://app.prolific.com/submissions/complete?cc=CADFMHWR';
-            }, 500);
+            }, 1500);
         } catch (err: any) {
             setFieldErrors({ _submit: err.message || 'Something went wrong' });
         } finally {
