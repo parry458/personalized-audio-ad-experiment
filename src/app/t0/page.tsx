@@ -122,7 +122,7 @@ function T0Content() {
         'Watching videos, TV, or streaming content online',
         'Browsing products or shopping online',
         'Playing video games',
-        'Watching sports highlights or sports videos',
+        'Watching live sports or sports highlights',
         'Using dating apps',
         'Chatting online with friends or family',
         'Reading news or informational content',
@@ -170,7 +170,6 @@ function T0Content() {
         if (s === 1) {
             if (!screenerAnswers.q1) errors.q1 = msg;
             if (!screenerAnswers.q2) errors.q2 = msg;
-            if (!screenerAnswers.q3) errors.q3 = msg;
         }
         if (s === 2) {
             if (!formData.country) errors.country = msg;
@@ -209,8 +208,7 @@ function T0Content() {
         // Check correctness
         const correct =
             screenerAnswers.q1 === 'A book' &&
-            screenerAnswers.q2 === 'Yawning' &&
-            screenerAnswers.q3 === 'Piano';
+            screenerAnswers.q2 === 'Yawning';
 
         if (!correct) {
             // Record failure permanently
@@ -636,28 +634,6 @@ function T0Content() {
                                     ))}
                                 </RadioGroup>
                                 {fieldErrors.q2 && <p className="text-sm text-red-500">{fieldErrors.q2}</p>}
-                            </div>
-
-                            {/* Q3: Audio recognition */}
-                            <div className="space-y-3" data-field-error={!!fieldErrors.q3 || undefined}>
-                                <Label className="text-lg">Which instrument can you hear in the audio example? *</Label>
-                                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                                <audio controls className="w-full">
-                                    <source src="/screener/audio.mp3" type="audio/mpeg" />
-                                    Your browser does not support the audio element.
-                                </audio>
-                                <RadioGroup
-                                    value={screenerAnswers.q3 || ''}
-                                    onValueChange={(value) => handleScreenerChange('q3', value)}
-                                >
-                                    {['Piano', 'Drums', 'Guitar', 'Violin'].map(opt => (
-                                        <div key={opt} className="flex items-center space-x-3 py-1">
-                                            <RadioGroupItem value={opt} id={`sq3-${opt}`} />
-                                            <Label htmlFor={`sq3-${opt}`} className="text-base font-normal cursor-pointer">{opt}</Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                                {fieldErrors.q3 && <p className="text-sm text-red-500">{fieldErrors.q3}</p>}
                             </div>
                         </CardContent>
                     </Card>

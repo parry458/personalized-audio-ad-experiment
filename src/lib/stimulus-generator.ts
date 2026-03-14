@@ -13,17 +13,17 @@ const PAST_CATEGORY_MAPPING: Record<string, string> = {
     'Watching videos, TV, or streaming content online': 'watching videos or streaming shows online',
     'Browsing products or shopping online': 'browsing products or shopping online',
     'Playing video games': 'playing video games',
-    'Watching sports highlights or sports videos': 'watching sports highlights or sports videos',
+    'Watching live sports or sports highlights': 'watching live sports or sports highlights',
     'Using dating apps': 'using dating apps',
     'Chatting online with friends or family': 'chatting online with friends or family',
     'Reading news or informational content': 'reading news or informational content online',
     'Listening to music or other audio content': 'listening to music or audio content online',
 
-    // --- LEGACY FALLBACKS (DO NOT REMOVE) ---
     'Social media scrolling': 'social media',
     'Streaming videos/TV': 'streaming',
     'Online shopping / browsing products': 'online shopping',
     'Gaming': 'gaming',
+    'Watching sports highlights or sports videos': 'watching sports highlights or sports videos',
     'Sports content': 'sports content',
     'Dating apps / messaging': 'dating apps',
     'Other': 'online activity'
