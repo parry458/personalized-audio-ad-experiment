@@ -345,7 +345,7 @@ function T1Content() {
                 return;
             }
 
-            setStep('complete');
+            window.location.href = 'https://app.prolific.com/submissions/complete?cc=CODKF6RR';
         } catch (error) {
             console.error('Submit error:', error);
             setErrorMessage('Failed to submit responses');
@@ -458,33 +458,6 @@ function T1Content() {
                         </CardFooter>
                     </Card>
                 </div>
-            </main>
-        );
-    }
-
-    // ============================================
-    // RENDER: COMPLETE
-    // ============================================
-
-    if (step === 'complete') {
-        return (
-            <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                <Card className="w-full max-w-lg">
-                    <CardHeader>
-                        <CardTitle className="text-2xl flex items-center gap-2">
-                            <CheckCircle2 className="h-7 w-7 text-green-600" />
-                            Thank You!
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <p className="text-lg text-muted-foreground">
-                            Your responses have been recorded successfully.
-                        </p>
-                        <p className="text-base text-muted-foreground">
-                            You may now close this window or return to Prolific.
-                        </p>
-                    </CardContent>
-                </Card>
             </main>
         );
     }
