@@ -601,7 +601,7 @@ function T1Content() {
                             variant="outline"
                             size="lg"
                             className="flex-1 text-base py-5"
-                            onClick={() => { setConsentDeclined(false); setConsentAnswer(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            onClick={() => { setConsentDeclined(false); setConsentAnswer(''); setStep('consent'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                         >
                             <ChevronLeft className="mr-2 h-5 w-5" />
                             Go back to consent
