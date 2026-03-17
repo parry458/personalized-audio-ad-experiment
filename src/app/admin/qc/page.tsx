@@ -40,6 +40,20 @@ export default function AdminQCPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+    const BATCH_SIZE = 10;
+    const [pageByGroup, setPageByGroup] = useState<Record<StatusGroup, number>>({
+        under_review: 0,
+        needs_fix: 0,
+        awaiting_second_check: 0,
+    });
+
+    const changePage = (status: StatusGroup, delta: number, maxPage: number) => {
+        setPageByGroup(prev => ({
+            ...prev,
+            [status]: Math.max(0, Math.min(prev[status] + delta, maxPage)),
+        }));
+    };
+
     const showToast = (msg: string) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(null), 3000);
@@ -181,81 +195,112 @@ export default function AdminQCPage() {
                                     <span style={styles.groupCount}>{group.length}</span>
                                 </h2>
 
-                                <div style={styles.list}>
-                                    {group.map((p) => (
-                                        <div key={p.prolific_pid} style={{ ...styles.card, borderLeft: `4px solid ${config.color}` }}>
-                                            <div style={styles.cardHeader}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <strong>{p.prolific_pid}</strong>
-                                                    <span style={styles.conditionBadge}>{p.condition}</span>
+                                {(() => {
+                                    const page = pageByGroup[status];
+                                    const totalPages = Math.ceil(group.length / BATCH_SIZE);
+                                    const pageItems = group.slice(page * BATCH_SIZE, (page + 1) * BATCH_SIZE);
+                                    const start = page * BATCH_SIZE + 1;
+                                    const end = Math.min((page + 1) * BATCH_SIZE, group.length);
+                                    return (
+                                        <>
+                                            <p style={styles.pageInfo}>Showing {start}–{end} of {group.length}</p>
+                                            <div style={styles.list}>
+                                                {pageItems.map((p) => (
+                                                    <div key={p.prolific_pid} style={{ ...styles.card, borderLeft: `4px solid ${config.color}` }}>
+                                                        <div style={styles.cardHeader}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <strong>{p.prolific_pid}</strong>
+                                                                <span style={styles.conditionBadge}>{p.condition}</span>
+                                                            </div>
+                                                            <span style={{
+                                                                ...styles.badge,
+                                                                background: config.color,
+                                                            }}>
+                                                                {config.label.replace(/^[^ ]+ /, '')}
+                                                            </span>
+                                                        </div>
+
+                                                        <div style={styles.meta}>
+                                                            <span>Generated: {p.audio_generated_at ? new Date(p.audio_generated_at).toLocaleString() : 'N/A'}</span>
+                                                            {p.qc_replaced_count > 0 && (
+                                                                <span> • Replaced: {p.qc_replaced_count}x</span>
+                                                            )}
+                                                            {p.qc_notes && (
+                                                                <span> • Notes: {p.qc_notes}</span>
+                                                            )}
+                                                        </div>
+
+                                                        {p.audio_url && (
+                                                            <audio controls src={p.audio_url} style={styles.audio} />
+                                                        )}
+
+                                                        <textarea
+                                                            placeholder="QC notes (optional)"
+                                                            value={notes[p.prolific_pid] || ''}
+                                                            onChange={(e) => setNotes({ ...notes, [p.prolific_pid]: e.target.value })}
+                                                            style={styles.textarea}
+                                                        />
+
+                                                        <div style={styles.actions}>
+                                                            {/* Approve: for under_review and awaiting_second_check */}
+                                                            {(status === 'under_review' || status === 'awaiting_second_check') && (
+                                                                <button
+                                                                    onClick={() => handleApprove(p.prolific_pid)}
+                                                                    disabled={actionLoading === p.prolific_pid}
+                                                                    style={{ ...styles.button, ...styles.approveBtn }}
+                                                                >
+                                                                    ✅ Approve
+                                                                </button>
+                                                            )}
+                                                            {/* Needs Fix: for under_review and awaiting_second_check */}
+                                                            {(status === 'under_review' || status === 'awaiting_second_check') && (
+                                                                <button
+                                                                    onClick={() => handleNeedsFix(p.prolific_pid)}
+                                                                    disabled={actionLoading === p.prolific_pid}
+                                                                    style={{ ...styles.button, ...styles.fixBtn }}
+                                                                >
+                                                                    ⚠️ Needs Fix
+                                                                </button>
+                                                            )}
+                                                            {/* Replace Audio: always available */}
+                                                            <label style={styles.uploadLabel}>
+                                                                📁 Replace Audio
+                                                                <input
+                                                                    type="file"
+                                                                    accept="audio/mpeg,audio/mp3"
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (file) handleReplaceAudio(p.prolific_pid, file);
+                                                                    }}
+                                                                    style={{ display: 'none' }}
+                                                                />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalPages > 1 && (
+                                                <div style={styles.pagination}>
+                                                    <button
+                                                        onClick={() => changePage(status, -1, totalPages - 1)}
+                                                        disabled={page === 0}
+                                                        style={{ ...styles.pageBtn, opacity: page === 0 ? 0.4 : 1 }}
+                                                    >
+                                                        ← Previous
+                                                    </button>
+                                                    <span style={styles.pageLabel}>Page {page + 1} / {totalPages}</span>
+                                                    <button
+                                                        onClick={() => changePage(status, 1, totalPages - 1)}
+                                                        disabled={page >= totalPages - 1}
+                                                        style={{ ...styles.pageBtn, opacity: page >= totalPages - 1 ? 0.4 : 1 }}
+                                                    >
+                                                        Next →
+                                                    </button>
                                                 </div>
-                                                <span style={{
-                                                    ...styles.badge,
-                                                    background: config.color,
-                                                }}>
-                                                    {config.label.replace(/^[^ ]+ /, '')}
-                                                </span>
-                                            </div>
-
-                                            <div style={styles.meta}>
-                                                <span>Generated: {p.audio_generated_at ? new Date(p.audio_generated_at).toLocaleString() : 'N/A'}</span>
-                                                {p.qc_replaced_count > 0 && (
-                                                    <span> • Replaced: {p.qc_replaced_count}x</span>
-                                                )}
-                                                {p.qc_notes && (
-                                                    <span> • Notes: {p.qc_notes}</span>
-                                                )}
-                                            </div>
-
-                                            {p.audio_url && (
-                                                <audio controls src={p.audio_url} style={styles.audio} />
                                             )}
-
-                                            <textarea
-                                                placeholder="QC notes (optional)"
-                                                value={notes[p.prolific_pid] || ''}
-                                                onChange={(e) => setNotes({ ...notes, [p.prolific_pid]: e.target.value })}
-                                                style={styles.textarea}
-                                            />
-
-                                            <div style={styles.actions}>
-                                                {/* Approve: for under_review and awaiting_second_check */}
-                                                {(status === 'under_review' || status === 'awaiting_second_check') && (
-                                                    <button
-                                                        onClick={() => handleApprove(p.prolific_pid)}
-                                                        disabled={actionLoading === p.prolific_pid}
-                                                        style={{ ...styles.button, ...styles.approveBtn }}
-                                                    >
-                                                        ✅ Approve
-                                                    </button>
-                                                )}
-                                                {/* Needs Fix: for under_review and awaiting_second_check */}
-                                                {(status === 'under_review' || status === 'awaiting_second_check') && (
-                                                    <button
-                                                        onClick={() => handleNeedsFix(p.prolific_pid)}
-                                                        disabled={actionLoading === p.prolific_pid}
-                                                        style={{ ...styles.button, ...styles.fixBtn }}
-                                                    >
-                                                        ⚠️ Needs Fix
-                                                    </button>
-                                                )}
-                                                {/* Replace Audio: always available */}
-                                                <label style={styles.uploadLabel}>
-                                                    📁 Replace Audio
-                                                    <input
-                                                        type="file"
-                                                        accept="audio/mpeg,audio/mp3"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) handleReplaceAudio(p.prolific_pid, file);
-                                                        }}
-                                                        style={{ display: 'none' }}
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         );
                     })}
@@ -416,5 +461,28 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: 'none',
         borderRadius: '4px',
         cursor: 'pointer',
+    },
+    pageInfo: {
+        fontSize: '12px',
+        color: '#888',
+        marginBottom: '8px',
+    },
+    pagination: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginTop: '16px',
+    },
+    pageBtn: {
+        padding: '8px 16px',
+        borderRadius: '4px',
+        border: '1px solid #ccc',
+        background: '#fff',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+    },
+    pageLabel: {
+        fontSize: '13px',
+        color: '#555',
     },
 };
