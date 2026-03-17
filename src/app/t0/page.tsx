@@ -511,10 +511,10 @@ function T0Content() {
                             <p>You are invited to participate in a research study about how people perceive audio content in digital environments. Before deciding whether to participate, please read the following information.</p>
 
                             <p><strong>What you will do in the study:</strong><br />
-                                The study consists of two parts. Part 1 consists of answering several survey questions. Part 2 will take place within 1-2 hours after completing Part 1. You will be notified once Part 2 is ready to be taken. In Part 2, you will listen to an audio recording and answer follow-up questions.</p>
+                                The study consists of two parts. Part 1 consists of answering several survey questions. Part 2 will take place 7 days later. You will be notified once Part 2 is ready to be taken. In Part 2, you will listen to an audio recording and answer follow-up questions.</p>
 
                             <p><strong>Time required:</strong><br />
-                                Part 1 will take approximately 1–2 minutes. Part 2 will take approximately 3 minutes.</p>
+                                Part 1 will take approximately 2–3 minutes. Part 2 will take approximately 3 minutes.</p>
 
                             <p><strong>Risks:</strong><br />
                                 There are no anticipated risks associated with participating in this study.</p>
