@@ -12,6 +12,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 interface ParticipantQC {
     prolific_pid: string;
     condition: string;
+    city: string | null;
+    age: number | null;
+    age_range: string | null;
     audio_status: string;
     audio_path: string | null;
     audio_generated_at: string | null;
@@ -26,7 +29,7 @@ export async function GET() {
         // Fetch ALL condition participants needing QC
         const { data, error } = await supabaseAdmin
             .from('participants')
-            .select('prolific_pid, condition, audio_status, audio_path, audio_generated_at, qc_status, qc_checked_at, qc_notes, qc_replaced_count')
+            .select('prolific_pid, condition, city, age, age_range, audio_status, audio_path, audio_generated_at, qc_status, qc_checked_at, qc_notes, qc_replaced_count')
             .in('condition', ['medium', 'high', 'high_a', 'high_b'])
             .in('audio_status', ['under_review', 'needs_fix', 'awaiting_second_check', 'error'])
             .in('qc_status', ['under_review', 'needs_fix', 'awaiting_second_check'])

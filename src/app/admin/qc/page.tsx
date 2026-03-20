@@ -14,6 +14,9 @@ import { useState, useEffect } from 'react';
 interface Participant {
     prolific_pid: string;
     condition: string;
+    city: string | null;
+    age: number | null;
+    age_range: string | null;
     audio_status: string;
     audio_path: string | null;
     audio_url: string | null;
@@ -230,6 +233,12 @@ export default function AdminQCPage() {
                                                             )}
                                                         </div>
 
+                                                        {/* Participant info for audio verification */}
+                                                        <div style={styles.participantInfo}>
+                                                            <span>📍 <strong>City:</strong> {p.city || '—'}</span>
+                                                            <span>🎂 <strong>Age:</strong> {p.age ?? '—'}{p.age_range ? ` (${p.age_range})` : ''}</span>
+                                                        </div>
+
                                                         {p.audio_url && (
                                                             <audio controls src={p.audio_url} style={styles.audio} />
                                                         )}
@@ -409,6 +418,17 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontSize: '12px',
         color: '#888',
         marginBottom: '12px',
+    },
+    participantInfo: {
+        display: 'flex',
+        gap: '20px',
+        padding: '10px 12px',
+        marginBottom: '12px',
+        background: '#f0f4ff',
+        borderRadius: '6px',
+        border: '1px solid #c7d4f5',
+        fontSize: '13px',
+        color: '#333',
     },
     audio: {
         width: '100%',
