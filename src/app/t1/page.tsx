@@ -494,7 +494,7 @@ function T1Content() {
                         <CardContent className="space-y-4 pt-6 text-base leading-relaxed">
                             <p>
                                 You are now taking part in Part 2 of the study you started approximately one week ago.<br />
-                                Part two will take ca. 3 minutes.
+                                Part two will take ca. 4 minutes.
                             </p>
 
                             <p>
